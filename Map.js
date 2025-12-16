@@ -7,7 +7,7 @@ const map = document.getElementById("map-image");
 
 let scale = 1;
 let minScale = 1;   // 전체 지도가 한눈에 들어오는 최소 배율
-let maxScale = 4;   // 최대 확대 배율
+let maxScale = 7;   // 최대 확대 배율
 
 let posX = 0;
 let posY = 0;
@@ -140,3 +140,4 @@ container.addEventListener("wheel", (e) => {
     scale = Math.min(Math.max(scale, minScale), maxScale);
     updateTransform();
 }, { passive: false });
+
