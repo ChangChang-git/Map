@@ -51,7 +51,7 @@ pointer-events: none; /* 지도 위 터치 이벤트는 컨테이너가 받음 *
 }
 
 .hidden {
-    display: none;
+    display: none !important;;
 }
 
 #post-modal {
@@ -87,5 +87,6 @@ pointer-events: none; /* 지도 위 터치 이벤트는 컨테이너가 받음 *
     display: flex;
     justify-content: space-between;
 }
+
 
 
