@@ -1,6 +1,9 @@
 const container = document.getElementById("map-container");
 const map = document.getElementById("map-image");
 
+/* =====================
+   상태 변수
+===================== */
 let scale = 1;
 let posX = 0;
 let posY = 0;
@@ -8,15 +11,16 @@ let posY = 0;
 let lastX = 0;
 let lastY = 0;
 let lastScale = 1;
-
 let startDist = 0;
+
 let isDragging = false;
 let isPinching = false;
 
 let selectedPin = null;
+let pendingPinPosition = null; // ⭐ 더블클릭/탭 시 임시 좌표
 
 /* =====================
-   공통
+   유틸
 ===================== */
 function getDistance(t1, t2) {
     const dx = t1.clientX - t2.clientX;
@@ -48,12 +52,6 @@ function createPin(mapX, mapY) {
         openModal(pin);
     });
 
-    pin.addEventListener("touchstart", (e) => {
-        e.stopPropagation();
-        selectedPin = pin;
-        openModal(pin);
-    });
-
     container.appendChild(pin);
     updatePinPosition(pin);
 }
@@ -71,7 +69,7 @@ function updateAllPins() {
 }
 
 /* =====================
-   PC
+   PC 이동 / 줌
 ===================== */
 container.addEventListener("mousedown", (e) => {
     isDragging = true;
@@ -81,16 +79,20 @@ container.addEventListener("mousedown", (e) => {
 
 window.addEventListener("mousemove", (e) => {
     if (!isDragging) return;
+
     posX += e.clientX - lastX;
     posY += e.clientY - lastY;
     lastX = e.clientX;
     lastY = e.clientY;
+
     updateTransform();
 });
 
-window.addEventListener("mouseup", () => isDragging = false);
+window.addEventListener("mouseup", () => {
+    isDragging = false;
+});
 
-window.addEventListener("wheel", (e) => {
+container.addEventListener("wheel", (e) => {
     e.preventDefault();
 
     const rect = container.getBoundingClientRect();
@@ -109,7 +111,7 @@ window.addEventListener("wheel", (e) => {
 }, { passive: false });
 
 /* =====================
-   모바일
+   모바일 이동 / 핀치 줌
 ===================== */
 container.addEventListener("touchstart", (e) => {
     if (e.touches.length === 1) {
@@ -117,6 +119,7 @@ container.addEventListener("touchstart", (e) => {
         lastY = e.touches[0].clientY;
         isPinching = false;
     }
+
     if (e.touches.length === 2) {
         isPinching = true;
         startDist = getDistance(e.touches[0], e.touches[1]);
@@ -143,14 +146,38 @@ container.addEventListener("touchmove", (e) => {
 }, { passive: false });
 
 /* =====================
-   핀 생성
+   더블클릭 / 더블탭 → 모달 먼저
 ===================== */
 container.addEventListener("dblclick", (e) => {
     const rect = container.getBoundingClientRect();
-    createPin(
-        (e.clientX - rect.width / 2 - posX) / scale,
-        (e.clientY - rect.height / 2 - posY) / scale
-    );
+
+    pendingPinPosition = {
+        x: (e.clientX - rect.width / 2 - posX) / scale,
+        y: (e.clientY - rect.height / 2 - posY) / scale
+    };
+
+    selectedPin = null;
+    openModal(null);
+});
+
+/* 모바일 더블탭 */
+let lastTapTime = 0;
+
+container.addEventListener("touchend", (e) => {
+    const now = Date.now();
+    if (now - lastTapTime < 300) {
+        const touch = e.changedTouches[0];
+        const rect = container.getBoundingClientRect();
+
+        pendingPinPosition = {
+            x: (touch.clientX - rect.width / 2 - posX) / scale,
+            y: (touch.clientY - rect.height / 2 - posY) / scale
+        };
+
+        selectedPin = null;
+        openModal(null);
+    }
+    lastTapTime = now;
 });
 
 /* =====================
@@ -163,22 +190,43 @@ const imageInput = document.getElementById("image-input");
 
 function openModal(pin) {
     modal.classList.remove("hidden");
-    authorInput.value = pin.postData?.author || "";
-    contentInput.value = pin.postData?.content || "";
+
+    if (pin) {
+        authorInput.value = pin.postData?.author || "";
+        contentInput.value = pin.postData?.content || "";
+    } else {
+        authorInput.value = "";
+        contentInput.value = "";
+    }
+
     imageInput.value = "";
 }
 
 document.getElementById("close-modal").onclick = () => {
     modal.classList.add("hidden");
     selectedPin = null;
+    pendingPinPosition = null;
 };
 
 document.getElementById("save-post").onclick = () => {
+    const author = authorInput.value.trim();
+    const content = contentInput.value.trim();
+
+    if (!author || !content) {
+        alert("작성자와 내용을 입력하세요");
+        return;
+    }
+
+    if (!selectedPin && pendingPinPosition) {
+        createPin(pendingPinPosition.x, pendingPinPosition.y);
+        selectedPin = document.querySelector(".map-pin:last-child");
+        pendingPinPosition = null;
+    }
+
     if (!selectedPin) return;
-    selectedPin.postData = {
-        author: authorInput.value,
-        content: contentInput.value
-    };
+
+    selectedPin.postData = { author, content };
+
     modal.classList.add("hidden");
     selectedPin = null;
 };
