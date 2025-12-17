@@ -1,9 +1,6 @@
 const container = document.getElementById("map-container");
 const map = document.getElementById("map-image");
 
-/* =====================
-   상태 변수
-===================== */
 let scale = 1;
 let posX = 0;
 let posY = 0;
@@ -14,16 +11,12 @@ let lastScale = 1;
 
 let startDist = 0;
 let isDragging = false;
-
-let pinchCenterX = 0;
-let pinchCenterY = 0;
-let pinchMapX = 0;
-let pinchMapY = 0;
+let isPinching = false;
 
 let selectedPin = null;
 
 /* =====================
-   유틸
+   공통
 ===================== */
 function getDistance(t1, t2) {
     const dx = t1.clientX - t2.clientX;
@@ -31,13 +24,9 @@ function getDistance(t1, t2) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
-/* =====================
-   지도 + 핀 갱신
-===================== */
 function updateTransform() {
     map.style.transform =
         `translate(calc(-50% + ${posX}px), calc(-50% + ${posY}px)) scale(${scale})`;
-
     updateAllPins();
 }
 
@@ -47,13 +36,10 @@ function updateTransform() {
 function createPin(mapX, mapY) {
     const pin = document.createElement("div");
     pin.className = "map-pin";
-
-    // 🔴 클릭 가능하게
     pin.style.pointerEvents = "auto";
 
     pin.dataset.x = mapX;
     pin.dataset.y = mapY;
-
     pin.postData = null;
 
     pin.addEventListener("click", (e) => {
@@ -62,19 +48,22 @@ function createPin(mapX, mapY) {
         openModal(pin);
     });
 
-    updatePinPosition(pin);
+    pin.addEventListener("touchstart", (e) => {
+        e.stopPropagation();
+        selectedPin = pin;
+        openModal(pin);
+    });
+
     container.appendChild(pin);
+    updatePinPosition(pin);
 }
 
 function updatePinPosition(pin) {
     const x = Number(pin.dataset.x);
     const y = Number(pin.dataset.y);
 
-    const screenX = posX + x * scale;
-    const screenY = posY + y * scale;
-
-    pin.style.left = `calc(50% + ${screenX}px)`;
-    pin.style.top = `calc(50% + ${screenY}px)`;
+    pin.style.left = `calc(50% + ${posX + x * scale}px)`;
+    pin.style.top = `calc(50% + ${posY + y * scale}px)`;
 }
 
 function updateAllPins() {
@@ -82,40 +71,90 @@ function updateAllPins() {
 }
 
 /* =====================
-   PC + 모바일 줌/이동
+   PC
 ===================== */
-/* (네 코드 그대로 유지 — 생략 없음) */
-/* 👉 이 부분은 이미 잘 돼 있어서 수정 안 함 */
+container.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+});
+
+window.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    posX += e.clientX - lastX;
+    posY += e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    updateTransform();
+});
+
+window.addEventListener("mouseup", () => isDragging = false);
+
+window.addEventListener("wheel", (e) => {
+    e.preventDefault();
+
+    const rect = container.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const mapX = (mouseX - rect.width / 2 - posX) / scale;
+    const mapY = (mouseY - rect.height / 2 - posY) / scale;
+
+    scale = Math.min(Math.max(scale - e.deltaY * 0.002, 0.3), 5);
+
+    posX = mouseX - rect.width / 2 - mapX * scale;
+    posY = mouseY - rect.height / 2 - mapY * scale;
+
+    updateTransform();
+}, { passive: false });
 
 /* =====================
-   더블클릭 / 더블탭 핀 생성
+   모바일
+===================== */
+container.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 1) {
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+        isPinching = false;
+    }
+    if (e.touches.length === 2) {
+        isPinching = true;
+        startDist = getDistance(e.touches[0], e.touches[1]);
+        lastScale = scale;
+    }
+});
+
+container.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+
+    if (e.touches.length === 1 && !isPinching) {
+        posX += e.touches[0].clientX - lastX;
+        posY += e.touches[0].clientY - lastY;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+    }
+
+    if (e.touches.length === 2) {
+        const dist = getDistance(e.touches[0], e.touches[1]);
+        scale = Math.min(Math.max(lastScale * (dist / startDist), 0.3), 5);
+    }
+
+    updateTransform();
+}, { passive: false });
+
+/* =====================
+   핀 생성
 ===================== */
 container.addEventListener("dblclick", (e) => {
     const rect = container.getBoundingClientRect();
-
-    const cx = e.clientX - rect.left - rect.width / 2 - posX;
-    const cy = e.clientY - rect.top - rect.height / 2 - posY;
-
-    createPin(cx / scale, cy / scale);
-});
-
-let lastTapTime = 0;
-container.addEventListener("touchend", (e) => {
-    const now = Date.now();
-    if (now - lastTapTime < 300) {
-        const touch = e.changedTouches[0];
-        const rect = container.getBoundingClientRect();
-
-        const cx = touch.clientX - rect.left - rect.width / 2 - posX;
-        const cy = touch.clientY - rect.height / 2 - posY;
-
-        createPin(cx / scale, cy / scale);
-    }
-    lastTapTime = now;
+    createPin(
+        (e.clientX - rect.width / 2 - posX) / scale,
+        (e.clientY - rect.height / 2 - posY) / scale
+    );
 });
 
 /* =====================
-   게시글 모달
+   모달
 ===================== */
 const modal = document.getElementById("post-modal");
 const authorInput = document.getElementById("author-input");
@@ -124,7 +163,6 @@ const imageInput = document.getElementById("image-input");
 
 function openModal(pin) {
     modal.classList.remove("hidden");
-
     authorInput.value = pin.postData?.author || "";
     contentInput.value = pin.postData?.content || "";
     imageInput.value = "";
@@ -137,36 +175,10 @@ document.getElementById("close-modal").onclick = () => {
 
 document.getElementById("save-post").onclick = () => {
     if (!selectedPin) return;
-
-    const author = authorInput.value.trim();
-    const content = contentInput.value.trim();
-    const file = imageInput.files[0];
-
-    if (!author || !content) {
-        alert("작성자와 내용을 입력하세요");
-        return;
-    }
-
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = () => {
-            savePost(author, content, reader.result);
-        };
-        reader.readAsDataURL(file);
-    } else {
-        savePost(author, content, null);
-    }
-};
-
-function savePost(author, content, imageData) {
-    selectedPin.postData = { author, content, image: imageData };
-
-    if (imageData) {
-        selectedPin.style.backgroundImage = `url(${imageData})`;
-        selectedPin.style.backgroundSize = "cover";
-        selectedPin.style.backgroundPosition = "center";
-    }
-
+    selectedPin.postData = {
+        author: authorInput.value,
+        content: contentInput.value
+    };
     modal.classList.add("hidden");
     selectedPin = null;
-}
+};
