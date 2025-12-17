@@ -15,6 +15,12 @@ let lastScale = 1;
 let startDist = 0;
 let isDragging = false;
 
+let pinchCenterX = 0;
+let pinchCenterY = 0;
+let pinchMapX = 0;
+let pinchMapY = 0;
+✅ 최종 결과 (PC
+
 /* =====================
    유틸 함수
 ===================== */
@@ -73,14 +79,30 @@ container.addEventListener("touchstart", (e) => {
     }
 
     if (e.touches.length === 2) {
-        startDist = getDistance(e.touches[0], e.touches[1]);
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+
+        startDist = getDistance(t1, t2);
         lastScale = scale;
+
+        // 두 손가락 중심점
+        pinchCenterX = (t1.clientX + t2.clientX) / 2;
+        pinchCenterY = (t1.clientY + t2.clientY) / 2;
+
+        const rect = container.getBoundingClientRect();
+
+        // 중심점의 지도 좌표 저장
+        pinchMapX =
+            (pinchCenterX - rect.left - rect.width / 2 - posX) / scale;
+        pinchMapY =
+            (pinchCenterY - rect.top - rect.height / 2 - posY) / scale;
     }
 });
 
 container.addEventListener("touchmove", (e) => {
     e.preventDefault();
 
+    // 한 손 드래그
     if (e.touches.length === 1) {
         const dx = e.touches[0].clientX - lastX;
         const dy = e.touches[0].clientY - lastY;
@@ -92,14 +114,34 @@ container.addEventListener("touchmove", (e) => {
         lastY = e.touches[0].clientY;
     }
 
+    // 두 손 핀치 (중심 기준 줌)
     if (e.touches.length === 2) {
-        const newDist = getDistance(e.touches[0], e.touches[1]);
-        scale = lastScale * (newDist / startDist);
-        scale = Math.min(Math.max(scale, 0.3), 5);
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+
+        const newDist = getDistance(t1, t2);
+        let newScale = lastScale * (newDist / startDist);
+
+        newScale = Math.min(Math.max(newScale, 0.3), 5);
+
+        const rect = container.getBoundingClientRect();
+
+        // 현재 중심점 다시 계산
+        const centerX = (t1.clientX + t2.clientX) / 2;
+        const centerY = (t1.clientY + t2.clientY) / 2;
+
+        scale = newScale;
+
+        // 중심 기준 pos 보정
+        posX =
+            centerX - rect.left - rect.width / 2 - pinchMapX * scale;
+        posY =
+            centerY - rect.top - rect.height / 2 - pinchMapY * scale;
     }
 
     updateTransform();
 }, { passive: false });
+
 
 /* =====================
    PC 마우스
@@ -132,9 +174,30 @@ window.addEventListener("mouseup", () => {
 container.addEventListener("wheel", (e) => {
     e.preventDefault();
 
+    const rect = container.getBoundingClientRect();
+
+    // 마우스 위치 (컨테이너 기준)
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // 현재 scale에서의 지도 좌표
+    const mapX = (mouseX - rect.width / 2 - posX) / scale;
+    const mapY = (mouseY - rect.height / 2 - posY) / scale;
+
+    // scale 변경
     const zoomSpeed = 0.002;
-    scale += -e.deltaY * zoomSpeed;
-    scale = Math.min(Math.max(scale, 0.3), 5);
+    const newScale = Math.min(
+        Math.max(scale + -e.deltaY * zoomSpeed, 0.3),
+        5
+    );
+
+    // scale 변화량
+    const scaleRatio = newScale / scale;
+    scale = newScale;
+
+    // pos 보정 (마우스 기준 유지)
+    posX = mouseX - rect.width / 2 - mapX * scale;
+    posY = mouseY - rect.height / 2 - mapY * scale;
 
     updateTransform();
 }, { passive: false });
@@ -177,3 +240,4 @@ container.addEventListener("touchend", (e) => {
 
     lastTapTime = now;
 });
+
