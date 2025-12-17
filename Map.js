@@ -34,8 +34,13 @@ function getDistance(t1, t2) {
 function updateTransform() {
     map.style.transform =
         `translate(calc(-50% + ${posX}px), calc(-50% + ${posY}px)) scale(${scale})`;
+    updateAllPins();
 }
 
+fuction updateAllPins(){
+document.querySelectorAll('.map-pin').forEach(updatePinPosition);
+
+}
 // ======================
 // 초기 상태: 전체 지도 맞춤
 // ======================
@@ -130,6 +135,38 @@ window.addEventListener("mouseup", () => {
     isDragging = false;
 });
 
+container.addEventListener("dbclick", (e) => {
+const rect = contaniner.getBoundingClientRect();
+
+    const cx = e.clientX - rect.left - rect.width / 2 - posX;
+       const cy = e.clientY - rect.top - rect.height / 2 - posY;
+
+    const mapX = cx / scale;
+     const mapY = cy / scale;
+
+    createPin(mapX, mapY);
+});
+
+let lastTapTime = 0;
+
+container.addEventListener("touched", (e) => {const now = Date.now();
+                                              if(now - lastTapTime < 300)
+                                              {
+const touch = e.changedTouches[0];
+                                                  const rect = container.getBoundingClientRect();
+                                                  
+                                                  
+    const cx = e.clientX - rect.left - rect.width / 2 - posX;
+       const cy = e.clientY - rect.top - rect.height / 2 - posY;
+
+    const mapX = cx / scale;
+     const mapY = cy / scale;
+ createPin(mapX, mapY);
+
+                                              }
+
+                                              lastTapTime = now;
+
 // 마우스 휠 줌
 container.addEventListener("wheel", (e) => {
     e.preventDefault();
@@ -140,4 +177,34 @@ container.addEventListener("wheel", (e) => {
     scale = Math.min(Math.max(scale, minScale), maxScale);
     updateTransform();
 }, { passive: false });
+
+function createPin(mapX, mapY){
+    const pin = document.createElement("div");
+    pin.dataset.x = mapX;
+    pin.dataset.y = mapY;
+
+    updatePinPosition(pin);
+    container.appendChild(pin);
+
+
+
+
+}
+
+fuction updatePinPosition(pin) {
+const x = Number(pin.dataset.x);
+    const y = Number(pin.dataset.y);
+    const screenX = posX + x * scale;
+     const screenY = posX + y * scale;
+
+    pin.style.left = 'calc(50% + ${screenX}px)';
+     pin.style.top = 'calc(50% + ${screenY}px)';
+    
+
+
+
+
+
+}
+
 
