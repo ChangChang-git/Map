@@ -50,19 +50,24 @@ pointer-events: none; /* 지도 위 터치 이벤트는 컨테이너가 받음 *
     pointer-events: none;
 }
 
-.hidden {
-    display: none !important;;
+hidden {
+    display: none;
 }
 
 #post-modal {
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.5);
+    z-index: 1000;
+}
+
+/* hidden이 아닐 때만 보이게 */
+#post-modal:not(.hidden) {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
 }
+
 
 .modal-box {
     background: white;
@@ -87,6 +92,7 @@ pointer-events: none; /* 지도 위 터치 이벤트는 컨테이너가 받음 *
     display: flex;
     justify-content: space-between;
 }
+
 
 
 
