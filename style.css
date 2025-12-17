@@ -50,3 +50,42 @@ pointer-events: none; /* 지도 위 터치 이벤트는 컨테이너가 받음 *
     pointer-events: none;
 }
 
+.hidden {
+    display: none;
+}
+
+#post-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-box {
+    background: white;
+    width: 90%;
+    max-width: 400px;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.modal-box h2 {
+    margin-top: 0;
+}
+
+.modal-box input,
+.modal-box textarea {
+    width: 100%;
+    margin: 8px 0;
+    padding: 8px;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: space-between;
+}
+
+
