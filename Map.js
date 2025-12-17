@@ -19,6 +19,8 @@ let pinchCenterX = 0;
 let pinchCenterY = 0;
 let pinchMapX = 0;
 let pinchMapY = 0;
+
+let selectedPin = null;
 ✅ 최종 결과 (PC
 
 /* =====================
@@ -50,9 +52,18 @@ function createPin(mapX, mapY) {
     pin.dataset.x = mapX;
     pin.dataset.y = mapY;
 
+    // 게시글 데이터 저장용
+    pin.postData = null;
+
+    pin.addEventListener("click", () => {
+        selectedPin = pin;
+        openModal(pin);
+    });
+
     updatePinPosition(pin);
     container.appendChild(pin);
 }
+
 
 function updatePinPosition(pin) {
     const x = Number(pin.dataset.x);
@@ -240,4 +251,62 @@ container.addEventListener("touchend", (e) => {
 
     lastTapTime = now;
 });
+
+const modal = document.getElementById("post-modal");
+const authorInput = document.getElementById("author-input");
+const contentInput = document.getElementById("content-input");
+const imageInput = document.getElementById("image-input");
+
+function openModal(pin) {
+    modal.classList.remove("hidden");
+
+    if (pin.postData) {
+        authorInput.value = pin.postData.author;
+        contentInput.value = pin.postData.content;
+    } else {
+        authorInput.value = "";
+        contentInput.value = "";
+        imageInput.value = "";
+    }
+}
+
+document.getElementById("close-modal").onclick = () => {
+    modal.classList.add("hidden");
+};
+
+document.getElementById("save-post").onclick = () => {
+    if (!selectedPin) return;
+
+    const author = authorInput.value;
+    const content = contentInput.value;
+    const file = imageInput.files[0];
+
+    if (!author || !content) {
+        alert("작성자와 내용을 입력하세요");
+        return;
+    }
+
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            savePost(author, content, reader.result);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        savePost(author, content, null);
+    }
+};
+
+function savePost(author, content, imageData) {
+    selectedPin.postData = {
+        author,
+        content,
+        image: imageData
+    };
+
+    modal.classList.add("hidden");
+}
+
+
+
 
