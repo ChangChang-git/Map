@@ -25,4 +25,19 @@ transform: translate(-50%, -50%) scale(1);
 transform-origin: center center;
 user-select: none;
 pointer-events: none; /* 지도 위 터치 이벤트는 컨테이너가 받음 */
+
+}
+
+.map-pin {
+ position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: red;
+  border-radius: 50%
+  transform: translate(-50%, -50%);
+  pointer -events: none;
+  
+
+
+
 }
