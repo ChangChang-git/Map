@@ -1,13 +1,13 @@
-// DOM이 완전히 로드된 후 실행
 document.addEventListener('DOMContentLoaded', function () {
     const container = document.getElementById("map-container");
     const map = document.getElementById("map-image");
     const modal = document.getElementById("post-modal");
     const authorInput = document.getElementById("author-input");
     const contentInput = document.getElementById("content-input");
-    const imageInput = document.getElementById("image-input");
 
-    /* ================= 상태 변수 ================= */
+    /* =====================
+       상태 변수
+    ===================== */
     let scale = 1;
     let posX = 0;
     let posY = 0;
@@ -19,16 +19,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let isDragging = false;
     let isPinching = false;
+    let touchMoved = false;
 
     let selectedPin = null;
     let pendingPinPosition = null;
 
-    let touchMoved = false;
-    let touchStartX = 0;
-    let touchStartY = 0;
     let lastTapTime = 0;
+    let lastTapX = 0;
+    let lastTapY = 0;
+    let blockDoubleTap = false;
 
-    /* ================= 유틸 ================= */
+    /* =====================
+       유틸
+    ===================== */
     function getDistance(t1, t2) {
         const dx = t1.clientX - t2.clientX;
         const dy = t1.clientY - t2.clientY;
@@ -41,7 +44,9 @@ document.addEventListener('DOMContentLoaded', function () {
         updateAllPins();
     }
 
-    /* ================= 핀 ================= */
+    /* =====================
+       핀
+    ===================== */
     function createPin(mapX, mapY) {
         const pin = document.createElement("div");
         pin.className = "map-pin";
@@ -71,7 +76,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll(".map-pin").forEach(updatePinPosition);
     }
 
-    /* ================= PC ================= */
+    /* =====================
+       PC 이벤트
+    ===================== */
     container.addEventListener("mousedown", (e) => {
         if (e.target.classList.contains("map-pin")) return;
         isDragging = true;
@@ -95,34 +102,35 @@ document.addEventListener('DOMContentLoaded', function () {
     container.addEventListener("wheel", (e) => {
         e.preventDefault();
         const rect = container.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
 
-        const mapX = (mx - rect.width / 2 - posX) / scale;
-        const mapY = (my - rect.height / 2 - posY) / scale;
+        const mapX = (mouseX - rect.width / 2 - posX) / scale;
+        const mapY = (mouseY - rect.height / 2 - posY) / scale;
 
         scale = Math.min(Math.max(scale - e.deltaY * 0.002, 0.3), 5);
 
-        posX = mx - rect.width / 2 - mapX * scale;
-        posY = my - rect.height / 2 - mapY * scale;
+        posX = mouseX - rect.width / 2 - mapX * scale;
+        posY = mouseY - rect.height / 2 - mapY * scale;
 
         updateTransform();
     }, { passive: false });
 
-    /* ================= 모바일 ================= */
+    /* =====================
+       모바일 이벤트
+    ===================== */
     container.addEventListener("touchstart", (e) => {
         touchMoved = false;
 
         if (e.touches.length === 1) {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-            lastX = touchStartX;
-            lastY = touchStartY;
+            lastX = e.touches[0].clientX;
+            lastY = e.touches[0].clientY;
             isPinching = false;
         }
 
         if (e.touches.length === 2) {
             isPinching = true;
+            blockDoubleTap = true;
             startDist = getDistance(e.touches[0], e.touches[1]);
             lastScale = scale;
         }
@@ -132,13 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
 
         if (e.touches.length === 1 && !isPinching) {
-            const dx = e.touches[0].clientX - touchStartX;
-            const dy = e.touches[0].clientY - touchStartY;
-
-            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-                touchMoved = true;
-            }
-
+            touchMoved = true;
             posX += e.touches[0].clientX - lastX;
             posY += e.touches[0].clientY - lastY;
             lastX = e.touches[0].clientX;
@@ -146,7 +148,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (e.touches.length === 2) {
-            touchMoved = true;
             const dist = getDistance(e.touches[0], e.touches[1]);
             scale = Math.min(Math.max(lastScale * (dist / startDist), 0.3), 5);
         }
@@ -155,15 +156,22 @@ document.addEventListener('DOMContentLoaded', function () {
     }, { passive: false });
 
     container.addEventListener("touchend", (e) => {
-        if (touchMoved || isPinching) {
+        if (touchMoved || isPinching || blockDoubleTap) {
             lastTapTime = 0;
+            blockDoubleTap = false;
             return;
         }
 
+        if (e.changedTouches.length !== 1) return;
+
+        const touch = e.changedTouches[0];
         const now = Date.now();
 
-        if (now - lastTapTime < 300 && e.changedTouches.length === 1) {
-            const touch = e.changedTouches[0];
+        const dx = touch.clientX - lastTapX;
+        const dy = touch.clientY - lastTapY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (now - lastTapTime < 300 && distance > 40) {
             const rect = container.getBoundingClientRect();
 
             pendingPinPosition = {
@@ -173,14 +181,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
             selectedPin = null;
             openModal(null);
+
             lastTapTime = 0;
+            lastTapX = 0;
+            lastTapY = 0;
             return;
         }
 
         lastTapTime = now;
+        lastTapX = touch.clientX;
+        lastTapY = touch.clientY;
     });
 
-    /* ================= 더블클릭 (PC 핀 생성) ================= */
+    /* =====================
+       PC 더블클릭
+    ===================== */
     container.addEventListener("dblclick", (e) => {
         if (e.target.classList.contains("map-pin")) return;
 
@@ -194,7 +209,9 @@ document.addEventListener('DOMContentLoaded', function () {
         openModal(null);
     });
 
-    /* ================= 모달 ================= */
+    /* =====================
+       모달
+    ===================== */
     function openModal(pin) {
         modal.classList.remove("hidden");
 
@@ -205,8 +222,6 @@ document.addEventListener('DOMContentLoaded', function () {
             authorInput.value = "";
             contentInput.value = "";
         }
-
-        imageInput.value = "";
     }
 
     document.getElementById("close-modal").onclick = () => {
@@ -225,10 +240,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (!selectedPin && pendingPinPosition) {
-            selectedPin = createPin(
-                pendingPinPosition.x,
-                pendingPinPosition.y
-            );
+            selectedPin = createPin(pendingPinPosition.x, pendingPinPosition.y);
             pendingPinPosition = null;
         }
 
@@ -239,12 +251,4 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.classList.add("hidden");
         selectedPin = null;
     };
-
-    modal.addEventListener("click", (e) => {
-        if (e.target === modal) {
-            modal.classList.add("hidden");
-            selectedPin = null;
-            pendingPinPosition = null;
-        }
-    });
 });
