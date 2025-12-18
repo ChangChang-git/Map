@@ -603,3 +603,4 @@ input[type="file"]::file-selector-button:hover {
     animation: sparkle 1.5s ease-in-out infinite;
     pointer-events: none;
 }
+
