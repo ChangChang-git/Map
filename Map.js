@@ -28,6 +28,7 @@ let currentUser = null;
 let isRegistering = false;
 let selectedPinId = null;
 let currentPinData = null;
+let viewUnsubscribe = null;
 
 const container = document.getElementById("map-container");
 const map = document.getElementById("map-image");
@@ -535,8 +536,20 @@ function openViewModal(pinData) {
         }
     });
     
-    // 모달 닫을 때 리스너 해제
-    viewModal.dataset.unsubscribe = unsubscribe;
+   if (viewUnsubscribe) {
+        viewUnsubscribe();
+        viewUnsubscribe = null;
+    }
+
+    const pinRef = doc(db, "pins", pinData.id);
+    // 변수에 직접 함수를 저장합니다 (글자로 변하지 않음)
+    viewUnsubscribe = onSnapshot(pinRef, (doc) => {
+        if (doc.exists()) {
+            const updatedData = doc.data();
+            // ... (중략: 기존 업데이트 로직) ...
+            renderComments(updatedData.comments || []);
+        }
+    });
 }
 
 // 좋아요 버튼 클릭
@@ -571,20 +584,34 @@ document.getElementById("comment-input").addEventListener("keypress", (e) => {
 });
 
 document.getElementById("close-view").onclick = () => {
-    // 실시간 리스너 해제
-    if (viewModal.dataset.unsubscribe) {
-        viewModal.dataset.unsubscribe();
+    if (typeof viewUnsubscribe === "function") {
+        viewUnsubscribe(); // 변수에 담긴 함수 실행
+        viewUnsubscribe = null; // 초기화
     }
     viewModal.classList.remove("show");
 };
 
+// 모달 배경 클릭 시 닫기
+viewModal.addEventListener("click", (e) => {
+    if (e.target === viewModal) {
+        if (typeof viewUnsubscribe === "function") {
+            viewUnsubscribe();
+            viewUnsubscribe = null;
+        }
+        viewModal.classList.remove("show");
+    }
+});
+
 document.getElementById("delete-pin").onclick = async () => {
     if (confirm("이 핀을 삭제하시겠습니까?")) {
         loading.classList.remove("hidden");
-        await deletePin(selectedPinId);
-        if (viewModal.dataset.unsubscribe) {
-            viewModal.dataset.unsubscribe();
+        
+        if (typeof viewUnsubscribe === "function") {
+            viewUnsubscribe();
+            viewUnsubscribe = null;
         }
+        
+        await deletePin(selectedPinId);
         viewModal.classList.remove("show");
         loading.classList.add("hidden");
     }
@@ -605,3 +632,4 @@ viewModal.addEventListener("click", (e) => {
         viewModal.classList.remove("show");
     }
 });
+
