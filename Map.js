@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, orderBy, updateDoc, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCthH9cf-o3i9cciD7GfZJPLUSHt-VmjC8",
@@ -27,6 +27,7 @@ let pendingPinPosition = null;
 let currentUser = null;
 let isRegistering = false;
 let selectedPinId = null;
+let currentPinData = null;
 
 const container = document.getElementById("map-container");
 const map = document.getElementById("map-image");
@@ -85,7 +86,6 @@ function updateAllPins() {
 function loadPins() {
     const pinsQuery = query(collection(db, "pins"), orderBy("createdAt", "desc"));
     onSnapshot(pinsQuery, (snapshot) => {
-        // 기존 핀 제거
         document.querySelectorAll(".map-pin").forEach(p => p.remove());
         
         snapshot.forEach((doc) => {
@@ -106,7 +106,9 @@ async function savePin(x, y, title, content, image) {
             image: image || null,
             author: currentUser.username,
             authorId: currentUser.uid,
-            createdAt: new Date()
+            createdAt: new Date(),
+            likes: [],
+            comments: []
         });
     } catch (error) {
         console.error("핀 저장 실패:", error);
@@ -122,6 +124,126 @@ async function deletePin(pinId) {
         console.error("핀 삭제 실패:", error);
         alert("핀 삭제에 실패했습니다.");
     }
+}
+
+// 좋아요 토글
+async function toggleLike(pinId) {
+    try {
+        const pinRef = doc(db, "pins", pinId);
+        const pinDoc = await getDoc(pinRef);
+        const likes = pinDoc.data().likes || [];
+        
+        if (likes.includes(currentUser.uid)) {
+            await updateDoc(pinRef, {
+                likes: arrayRemove(currentUser.uid)
+            });
+        } else {
+            await updateDoc(pinRef, {
+                likes: arrayUnion(currentUser.uid)
+            });
+        }
+    } catch (error) {
+        console.error("좋아요 실패:", error);
+        alert("좋아요에 실패했습니다.");
+    }
+}
+
+// 댓글 추가
+async function addComment(pinId, commentText) {
+    try {
+        const pinRef = doc(db, "pins", pinId);
+        const comment = {
+            id: Date.now().toString(),
+            author: currentUser.username,
+            authorId: currentUser.uid,
+            text: commentText,
+            createdAt: new Date().toISOString()
+        };
+        
+        await updateDoc(pinRef, {
+            comments: arrayUnion(comment)
+        });
+    } catch (error) {
+        console.error("댓글 추가 실패:", error);
+        alert("댓글 추가에 실패했습니다.");
+    }
+}
+
+// 댓글 삭제
+async function deleteComment(pinId, commentId) {
+    try {
+        const pinRef = doc(db, "pins", pinId);
+        const pinDoc = await getDoc(pinRef);
+        const comments = pinDoc.data().comments || [];
+        const commentToDelete = comments.find(c => c.id === commentId);
+        
+        if (commentToDelete) {
+            await updateDoc(pinRef, {
+                comments: arrayRemove(commentToDelete)
+            });
+        }
+    } catch (error) {
+        console.error("댓글 삭제 실패:", error);
+        alert("댓글 삭제에 실패했습니다.");
+    }
+}
+
+// 댓글 목록 렌더링
+function renderComments(comments) {
+    const commentsList = document.getElementById("comments-list");
+    commentsList.innerHTML = "";
+    
+    if (!comments || comments.length === 0) {
+        commentsList.innerHTML = "<p style='color: #999; text-align: center;'>첫 댓글을 작성해보세요!</p>";
+        return;
+    }
+    
+    // 최신 댓글이 아래에 오도록 정렬
+    const sortedComments = [...comments].sort((a, b) => 
+        new Date(a.createdAt) - new Date(b.createdAt)
+    );
+    
+    sortedComments.forEach(comment => {
+        const commentEl = document.createElement("div");
+        commentEl.className = "comment-item";
+        
+        const timeAgo = getTimeAgo(new Date(comment.createdAt));
+        
+        commentEl.innerHTML = `
+            <div class="comment-header">
+                <span class="comment-author">${comment.author}</span>
+                <span class="comment-time">${timeAgo}</span>
+            </div>
+            <div class="comment-text">${comment.text}</div>
+            ${currentUser && currentUser.uid === comment.authorId ? 
+                `<div class="comment-actions">
+                    <button class="comment-delete-btn" data-comment-id="${comment.id}">삭제</button>
+                </div>` : ''
+            }
+        `;
+        
+        commentsList.appendChild(commentEl);
+    });
+    
+    // 댓글 삭제 버튼 이벤트
+    document.querySelectorAll(".comment-delete-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            if (confirm("댓글을 삭제하시겠습니까?")) {
+                await deleteComment(selectedPinId, btn.dataset.commentId);
+            }
+        });
+    });
+}
+
+// 시간 표시 (몇 분 전, 몇 시간 전 등)
+function getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    
+    if (seconds < 60) return "방금 전";
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}분 전`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}시간 전`;
+    if (seconds < 2592000) return `${Math.floor(seconds / 86400)}일 전`;
+    return date.toLocaleDateString();
 }
 
 // 이미지 Base64 변환
@@ -148,7 +270,7 @@ document.getElementById("auth-submit").onclick = async () => {
         return;
     }
 
-    const email = username + "@mappin.app"; // 이메일 형식 변환
+    const email = username + "@mappin.app";
 
     try {
         loading.classList.remove("hidden");
@@ -345,6 +467,7 @@ document.getElementById("pin-image").addEventListener("change", async (e) => {
 // 핀 보기 모달
 function openViewModal(pinData) {
     selectedPinId = pinData.id;
+    currentPinData = pinData;
     viewModal.classList.add("show");
     document.getElementById("view-title").textContent = pinData.title;
     document.getElementById("view-author").textContent = "작성자: " + pinData.author;
@@ -358,15 +481,100 @@ function openViewModal(pinData) {
         viewImage.classList.add("hidden");
     }
 
+    // 좋아요 상태 업데이트
+    const likes = pinData.likes || [];
+    const likeBtn = document.getElementById("like-btn");
+    const likeCount = document.getElementById("like-count");
+    
+    likeCount.textContent = likes.length;
+    if (currentUser && likes.includes(currentUser.uid)) {
+        likeBtn.classList.add("liked");
+        likeBtn.querySelector(".heart").textContent = "♥";
+    } else {
+        likeBtn.classList.remove("liked");
+        likeBtn.querySelector(".heart").textContent = "♡";
+    }
+
+    // 댓글 렌더링
+    const comments = pinData.comments || [];
+    document.getElementById("comment-count").textContent = comments.length;
+    renderComments(comments);
+    
+    // 댓글 입력창 초기화
+    document.getElementById("comment-input").value = "";
+
     const deleteBtn = document.getElementById("delete-pin");
     if (currentUser && currentUser.uid === pinData.authorId) {
         deleteBtn.style.display = "block";
     } else {
         deleteBtn.style.display = "none";
     }
+    
+    // 실시간 업데이트 리스너
+    const pinRef = doc(db, "pins", pinData.id);
+    const unsubscribe = onSnapshot(pinRef, (doc) => {
+        if (doc.exists()) {
+            const updatedData = doc.data();
+            currentPinData = { id: doc.id, ...updatedData };
+            
+            // 좋아요 업데이트
+            const updatedLikes = updatedData.likes || [];
+            likeCount.textContent = updatedLikes.length;
+            if (currentUser && updatedLikes.includes(currentUser.uid)) {
+                likeBtn.classList.add("liked");
+                likeBtn.querySelector(".heart").textContent = "♥";
+            } else {
+                likeBtn.classList.remove("liked");
+                likeBtn.querySelector(".heart").textContent = "♡";
+            }
+            
+            // 댓글 업데이트
+            const updatedComments = updatedData.comments || [];
+            document.getElementById("comment-count").textContent = updatedComments.length;
+            renderComments(updatedComments);
+        }
+    });
+    
+    // 모달 닫을 때 리스너 해제
+    viewModal.dataset.unsubscribe = unsubscribe;
 }
 
+// 좋아요 버튼 클릭
+document.getElementById("like-btn").onclick = async () => {
+    if (!currentUser) {
+        alert("로그인이 필요합니다.");
+        return;
+    }
+    await toggleLike(selectedPinId);
+};
+
+// 댓글 작성 버튼 클릭
+document.getElementById("add-comment").onclick = async () => {
+    const commentInput = document.getElementById("comment-input");
+    const commentText = commentInput.value.trim();
+    
+    if (!commentText) {
+        alert("댓글 내용을 입력하세요.");
+        return;
+    }
+    
+    await addComment(selectedPinId, commentText);
+    commentInput.value = "";
+};
+
+// 엔터키로 댓글 작성
+document.getElementById("comment-input").addEventListener("keypress", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById("add-comment").click();
+    }
+});
+
 document.getElementById("close-view").onclick = () => {
+    // 실시간 리스너 해제
+    if (viewModal.dataset.unsubscribe) {
+        viewModal.dataset.unsubscribe();
+    }
     viewModal.classList.remove("show");
 };
 
@@ -374,6 +582,9 @@ document.getElementById("delete-pin").onclick = async () => {
     if (confirm("이 핀을 삭제하시겠습니까?")) {
         loading.classList.remove("hidden");
         await deletePin(selectedPinId);
+        if (viewModal.dataset.unsubscribe) {
+            viewModal.dataset.unsubscribe();
+        }
         viewModal.classList.remove("show");
         loading.classList.add("hidden");
     }
@@ -388,6 +599,9 @@ createModal.addEventListener("click", (e) => {
 
 viewModal.addEventListener("click", (e) => {
     if (e.target === viewModal) {
+        if (viewModal.dataset.unsubscribe) {
+            viewModal.dataset.unsubscribe();
+        }
         viewModal.classList.remove("show");
     }
 });
