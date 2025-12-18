@@ -544,9 +544,9 @@ function openViewModal(pinData) {
 
    
           
-        }
-    });
-}
+       
+    
+
 
 // 좋아요 버튼 클릭
 document.getElementById("like-btn").onclick = async () => {
@@ -628,5 +628,6 @@ viewModal.addEventListener("click", (e) => {
         viewModal.classList.remove("show");
     }
 });
+
 
 
