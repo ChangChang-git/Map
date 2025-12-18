@@ -2,8 +2,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const container = document.getElementById("map-container");
     const map = document.getElementById("map-image");
     const modal = document.getElementById("post-modal");
-    const authorInput = document.getElementById("author-input");
+    const viewModal = document.getElementById("view-modal");
+    const titleInput = document.getElementById("title-input");
     const contentInput = document.getElementById("content-input");
+    const usernameInput = document.getElementById("username-input");
 
     /* =====================
        상태 변수
@@ -30,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let blockDoubleTap = false;
 
     const STORAGE_KEY = "mapPins";
+    const USERNAME_KEY = "currentUsername";
     
     /* =====================
        유틸
@@ -46,6 +49,20 @@ document.addEventListener('DOMContentLoaded', function () {
         updateAllPins();
     }
 
+    function getCurrentUsername() {
+        let username = localStorage.getItem(USERNAME_KEY);
+        if (!username) {
+            username = prompt("사용자 이름을 입력하세요:");
+            if (username && username.trim()) {
+                localStorage.setItem(USERNAME_KEY, username.trim());
+            } else {
+                username = "익명" + Math.floor(Math.random() * 1000);
+                localStorage.setItem(USERNAME_KEY, username);
+            }
+        }
+        return username;
+    }
+
     /* =====================
        핀 관련 함수
     ===================== */
@@ -59,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function () {
         pin.addEventListener("click", (e) => {
             e.stopPropagation();
             selectedPin = pin;
-            openModal(pin);
+            openViewModal(pin);
         });
 
         container.appendChild(pin);
@@ -78,8 +95,13 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll(".map-pin").forEach(updatePinPosition);
     }
 
+    function deletePin(pin) {
+        pin.remove();
+        savePinsToStorage();
+    }
+
     /* =====================
-       스토리지 함수 (여기로 이동!)
+       스토리지 함수
     ===================== */
     function savePinsToStorage() {
         const pins = [];
@@ -90,8 +112,9 @@ document.addEventListener('DOMContentLoaded', function () {
             pins.push({
                 x: Number(pin.dataset.x),
                 y: Number(pin.dataset.y),
-                author: pin.postData.author,
-                content: pin.postData.content
+                title: pin.postData.title,
+                content: pin.postData.content,
+                author: pin.postData.author
             });
         });
 
@@ -108,8 +131,9 @@ document.addEventListener('DOMContentLoaded', function () {
         pins.forEach(p => {
             const pin = createPin(p.x, p.y);
             pin.postData = {
-                author: p.author,
-                content: p.content
+                title: p.title,
+                content: p.content,
+                author: p.author
             };
         });
     }
@@ -218,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function () {
             };
 
             selectedPin = null;
-            openModal(null);
+            openCreateModal();
 
             lastTapTime = 0;
             lastTapX = 0;
@@ -244,22 +268,17 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         selectedPin = null;
-        openModal(null);
+        openCreateModal();
     });
 
     /* =====================
-       모달
+       모달 - 새 핀 작성
     ===================== */
-    function openModal(pin) {
+    function openCreateModal() {
         modal.classList.remove("hidden");
-
-        if (pin && pin.postData) {
-            authorInput.value = pin.postData.author || "";
-            contentInput.value = pin.postData.content || "";
-        } else {
-            authorInput.value = "";
-            contentInput.value = "";
-        }
+        titleInput.value = "";
+        contentInput.value = "";
+        usernameInput.value = getCurrentUsername();
     }
 
     document.getElementById("close-modal").onclick = () => {
@@ -269,13 +288,17 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     document.getElementById("save-post").onclick = () => {
-        const author = authorInput.value.trim();
+        const title = titleInput.value.trim();
         const content = contentInput.value.trim();
+        const author = usernameInput.value.trim();
 
-        if (!author || !content) {
-            alert("작성자와 내용을 입력하세요");
+        if (!title || !content || !author) {
+            alert("제목, 내용, 사용자 이름을 모두 입력하세요");
             return;
         }
+
+        // 사용자 이름 저장
+        localStorage.setItem(USERNAME_KEY, author);
 
         if (!selectedPin && pendingPinPosition) {
             selectedPin = createPin(pendingPinPosition.x, pendingPinPosition.y);
@@ -283,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (selectedPin) {
-            selectedPin.postData = { author, content };
+            selectedPin.postData = { title, content, author };
         }
 
         savePinsToStorage();
@@ -293,7 +316,53 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     /* =====================
+       모달 - 핀 보기
+    ===================== */
+    function openViewModal(pin) {
+        if (!pin.postData) return;
+
+        viewModal.classList.remove("hidden");
+        
+        document.getElementById("view-title").textContent = pin.postData.title;
+        document.getElementById("view-author").textContent = "작성자: " + pin.postData.author;
+        document.getElementById("view-content").textContent = pin.postData.content;
+
+        const deleteBtn = document.getElementById("delete-post");
+        const currentUser = getCurrentUsername();
+        
+        if (pin.postData.author === currentUser) {
+            deleteBtn.style.display = "block";
+            deleteBtn.onclick = () => {
+                if (confirm("이 핀을 삭제하시겠습니까?")) {
+                    deletePin(pin);
+                    viewModal.classList.add("hidden");
+                    selectedPin = null;
+                }
+            };
+        } else {
+            deleteBtn.style.display = "none";
+        }
+    }
+
+    document.getElementById("close-view-modal").onclick = () => {
+        viewModal.classList.add("hidden");
+        selectedPin = null;
+    };
+
+    /* =====================
+       사용자 이름 변경
+    ===================== */
+    document.getElementById("change-username").onclick = () => {
+        const newName = prompt("새 사용자 이름을 입력하세요:", getCurrentUsername());
+        if (newName && newName.trim()) {
+            localStorage.setItem(USERNAME_KEY, newName.trim());
+            alert("사용자 이름이 변경되었습니다: " + newName.trim());
+        }
+    };
+
+    /* =====================
        초기화
     ===================== */
     loadPinsFromStorage();
+    getCurrentUsername(); // 초기 사용자 이름 설정
 });
