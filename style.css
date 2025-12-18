@@ -1,4 +1,4 @@
-/* 기본 테마 설정 */
+/* 기본 변수 설정 */
 :root {
     --primary-color: #4361ee;
     --primary-hover: #3730a3;
@@ -6,222 +6,149 @@
     --bg-gray: #f8fafc;
     --text-main: #1e293b;
     --text-muted: #64748b;
-    --radius: 16px;
-    --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    --radius: 20px;
+    --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
 html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
     box-sizing: border-box;
     overflow: hidden;
-    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    font-family: 'Pretendard', system-ui, sans-serif;
     background-color: var(--bg-gray);
-    color: var(--text-main);
 }
 
 *, *:before, *:after { box-sizing: inherit; }
 
-/* =====================
-    지도 컨테이너
-===================== */
 #map-container {
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    position: relative;
-    cursor: grab;
-    touch-action: none;
+    width: 100vw; height: 100vh;
+    position: relative; overflow: hidden;
+    cursor: grab; touch-action: none;
 }
-
-#map-container:active { cursor: grabbing; }
 
 #map-image {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     max-width: none;
     user-select: none;
     -webkit-user-drag: none;
-    pointer-events: auto;
-    transition: filter 0.3s ease;
 }
 
 /* =====================
-    세련된 커스텀 핀
+    핀(Pin) 디자인
 ===================== */
+
+/* 1. 일반 핀 (이미지가 없는 경우) */
 .map-pin {
     position: absolute;
-    width: 34px;
-    height: 34px;
+    width: 30px; height: 30px;
     background: var(--primary-color);
     border: 3px solid white;
     border-radius: 50% 50% 50% 0;
-    transform: translate(-50%, -100%) rotate(-45deg);
+    transform: translate(-50%, -100%) rotate(-45deg); /* 정적인 고정 위치 */
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     z-index: 10;
 }
 
-.map-pin:hover {
-    transform: translate(-50%, -110%) rotate(-45deg) scale(1.15);
-    background: var(--primary-hover);
+/* 2. 이미지가 있는 핀 (원형 고리 디자인) */
+.map-pin.has-image {
+    width: 50px;           /* 이미지용 핀은 조금 더 크게 */
+    height: 50px;
+    background: white;     /* 고리 색상 */
+    border: 3px solid var(--primary-color); /* 테두리 링 */
+    border-radius: 50%;    /* 완벽한 원형 */
+    transform: translate(-50%, -50%) rotate(0deg); /* 회전 없이 정위치 */
+    padding: 2px;          /* 링과 이미지 사이 간격 */
+    overflow: hidden;
 }
 
-.map-pin::after {
-    content: '';
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    background: white;
-    border-radius: 50%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(45deg);
+/* 핀 내부 이미지 설정 */
+.map-pin.has-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;     /* 원형 안에 꽉 차게 */
+    border-radius: 50%;    /* 이미지를 원형으로 자름 */
+    display: block;
+}
+
+/* 애니메이션 제거: hover 시 크기만 아주 살짝 선명해지는 정도 */
+.map-pin:hover {
+    z-index: 11;
+    filter: brightness(1.1);
 }
 
 /* =====================
-    모달 디자인 (애플 스타일)
+    확장된 출력 창 (모달)
 ===================== */
 .hidden { display: none !important; }
 
 #post-modal, #view-modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.5); /* 어두운 오버레이 */
-    backdrop-filter: blur(4px); /* 배경 흐림 효과 */
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
     z-index: 999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
+    display: flex; align-items: center; justify-content: center;
 }
 
 .modal-box {
     background: white;
-    padding: 32px;
+    padding: 40px;
     border-radius: var(--radius);
     box-shadow: var(--shadow);
-    width: 100%;
-    max-width: 420px;
-    max-height: 85vh;
+    width: 95%;
+    max-width: 700px; /* 출력 창 크게 */
+    max-height: 90vh;
     overflow-y: auto;
-    animation: modalSlideUp 0.4s ease;
-}
-
-@keyframes modalSlideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-box h2 {
-    margin: 0 0 20px 0;
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
+    margin: 0 0 25px 0;
+    font-size: 28px;
+    font-weight: 800;
 }
 
-/* 입력 필드 고도화 */
 .modal-box input[type="text"],
 .modal-box textarea {
     width: 100%;
-    padding: 14px;
-    margin-bottom: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
     border: 1.5px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 15px;
-    background: #f8fafc;
-    transition: all 0.2s;
-}
-
-.modal-box input[type="text"]:focus,
-.modal-box textarea:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    background: white;
-    box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
-}
-
-.modal-box textarea { min-height: 140px; line-height: 1.5; }
-
-/* 버튼 그룹 */
-.modal-buttons {
-    display: flex;
-    gap: 12px;
-    margin-top: 8px;
-}
-
-.modal-box button {
-    flex: 1;
-    padding: 14px;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 15px;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-#save-post { background: var(--primary-color); color: white; }
-#save-post:hover { background: var(--primary-hover); transform: translateY(-1px); }
-
-#close-modal, #close-view-modal { background: #f1f5f9; color: var(--text-muted); }
-#close-modal:hover { background: #e2e8f0; }
-
-#delete-post { background: #fef2f2; color: var(--danger-color); }
-#delete-post:hover { background: #fee2e2; }
-
-/* =====================
-    기타 UI 요소
-===================== */
-#change-username {
-    position: fixed;
-    top: 24px;
-    right: 24px;
-    padding: 12px 20px;
-    background: white;
-    border: none;
-    color: var(--text-main);
-    border-radius: 30px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    z-index: 100;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transition: all 0.2s;
-}
-
-#change-username:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
-}
-
-#view-author {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-}
-
-#view-content {
+    border-radius: 14px;
     font-size: 16px;
-    line-height: 1.7;
-    color: #334155;
-    margin: 16px 0;
+}
+
+.modal-box textarea { 
+    min-height: 250px; /* 입력창 크게 */
 }
 
 #view-image {
     width: 100%;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    object-fit: cover;
+    max-height: 500px; /* 보기 창 이미지 크게 */
+    object-fit: contain;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    background: #f8fafc;
 }
 
-/* 스크롤바 커스텀 */
-.modal-box::-webkit-scrollbar { width: 6px; }
-.modal-box::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+.modal-buttons { display: flex; gap: 15px; }
+
+.modal-box button {
+    flex: 1; padding: 16px;
+    border: none; border-radius: 14px;
+    cursor: pointer; font-size: 16px; font-weight: 700;
+}
+
+#save-post { background: var(--primary-color); color: white; }
+#close-modal, #close-view-modal { background: #f1f5f9; color: var(--text-muted); }
+#delete-post { background: #fff1f2; color: var(--danger-color); }
+
+#change-username {
+    position: fixed; top: 25px; right: 25px;
+    padding: 14px 24px; background: white;
+    border: none; border-radius: 50px;
+    font-weight: 600; box-shadow: var(--shadow);
+    z-index: 100; cursor: pointer;
+}
