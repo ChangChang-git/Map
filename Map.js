@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const contentInput = document.getElementById("content-input");
     const usernameInput = document.getElementById("username-input");
     const imageInput = document.getElementById("image-input");
+    const imagePreview = document.getElementById("image-preview");
+    const imagePreviewContainer = document.getElementById("image-preview-container");
 
     /* =====================
        상태 변수
@@ -233,6 +235,8 @@ document.addEventListener('DOMContentLoaded', function () {
         contentInput.value = "";
         imageInput.value = "";
         usernameInput.value = getCurrentUsername();
+        imagePreviewContainer.classList.remove("show");
+        imagePreview.src = "";
     }
 
     function closeCreateModal() {
@@ -327,6 +331,32 @@ document.addEventListener('DOMContentLoaded', function () {
             alert("이름이 변경되었습니다: " + n.trim());
         }
     };
+
+    // 이미지 미리보기 기능
+    imageInput.addEventListener("change", async function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            try {
+                if (file.size > MAX_IMAGE_SIZE) {
+                    alert("이미지 크기는 4MB를 초과할 수 없습니다.");
+                    imageInput.value = "";
+                    imagePreviewContainer.classList.remove("show");
+                    return;
+                }
+                
+                const base64 = await getBase64(file);
+                imagePreview.src = base64;
+                imagePreviewContainer.classList.add("show");
+            } catch (error) {
+                console.error("미리보기 생성 실패:", error);
+                alert("이미지 미리보기를 생성할 수 없습니다.");
+                imagePreviewContainer.classList.remove("show");
+            }
+        } else {
+            imagePreviewContainer.classList.remove("show");
+            imagePreview.src = "";
+        }
+    });
 
     loadPinsFromStorage();
 });
