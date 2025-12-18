@@ -1,31 +1,22 @@
-/* 기본 변수 설정 */
-:root {
-    --primary-color: #4361ee;
-    --primary-hover: #3730a3;
-    --danger-color: #ef4444;
-    --bg-gray: #f8fafc;
-    --text-main: #1e293b;
-    --text-muted: #64748b;
-    --radius: 20px;
-    --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    --glow: 0 0 20px rgba(67, 97, 238, 0.4);
-}
-
-html, body {
-    margin: 0; padding: 0;
-    width: 100%; height: 100%;
+* {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
-    overflow: hidden;
-    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-*, *:before, *:after { box-sizing: inherit; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    background: #1a1a2e;
+}
 
 #map-container {
-    width: 100vw; height: 100vh;
-    position: relative; overflow: hidden;
-    cursor: grab; touch-action: none;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 #map-container:active {
@@ -34,573 +25,271 @@ html, body {
 
 #map-image {
     position: absolute;
-    top: 50%; left: 50%;
+    width: 800px;
+    height: 600px;
+    top: 50%;
+    left: 50%;
     transform: translate(-50%, -50%);
-    max-width: none;
-    user-select: none;
-    -webkit-user-drag: none;
-    pointer-events: none;
-    transition: filter 0.3s ease;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
-/* =====================
-    핀(Pin) 디자인 - 대폭 개선
-===================== */
-
-/* 1. 일반 핀 (이미지가 없는 경우) - 물방울 모양 */
 .map-pin {
     position: absolute;
-    width: 43px; height: 43px;
-    background: linear-gradient(135deg, var(--primary-color) 0%, #7c3aed 100%);
-    border: 4px solid white;
-    border-radius: 50% 50% 50% 0;
-    transform: translate(-50%, -100%) rotate(-45deg);
-    cursor: pointer;
-    box-shadow: 
-        0 8px 20px rgba(67, 97, 238, 0.4),
-        0 0 0 0 rgba(67, 97, 238, 0.6);
-    z-index: 10;
-    transition: all 0.3s ease;
-    animation: pinDrop 0.5s ease-out;
-}
-
-@keyframes pinDrop {
-    0% {
-        transform: translate(-50%, -120%) rotate(-45deg) scale(0.8);
-        opacity: 0;
-    }
-    70% {
-        transform: translate(-50%, -98%) rotate(-45deg) scale(1.05);
-    }
-    100% {
-        transform: translate(-50%, -100%) rotate(-45deg) scale(1);
-        opacity: 1;
-    }
-}
-
-/* 펄스 효과 - 더 차분하게 */
-@keyframes pulse {
-    0%, 100% {
-        box-shadow: 
-            0 8px 20px rgba(67, 97, 238, 0.4),
-            0 0 0 0 rgba(67, 97, 238, 0.4);
-    }
-    50% {
-        box-shadow: 
-            0 8px 20px rgba(67, 97, 238, 0.4),
-            0 0 0 8px rgba(67, 97, 238, 0);
-    }
-}
-
-.map-pin {
-    animation: pinDrop 0.5s ease-out, 
-               pulse 3s ease-in-out infinite 1s;
-}
-
-/* 2. 이미지가 있는 핀 - 원형 고리 + 글로우 효과 */
-.map-pin.has-image {
-    width: 72px;
-    height: 72px;
-    background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
-    border: 4px solid var(--primary-color);
+    width: 30px;
+    height: 30px;
+    background: #ff6b6b;
     border-radius: 50%;
-    transform: translate(-50%, -50%) rotate(0deg);
-    padding: 4px;
+    border: 3px solid white;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+.map-pin:hover {
+    transform: scale(1.2);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+}
+
+.map-pin.has-image {
+    width: 50px;
+    height: 50px;
+    background: white;
     overflow: hidden;
-    box-shadow: 
-        0 10px 30px rgba(67, 97, 238, 0.3),
-        0 0 0 0 rgba(67, 97, 238, 0.4),
-        inset 0 2px 4px rgba(255, 255, 255, 0.5);
-    animation: pinBounce 0.5s ease-out,
-               imageGlow 4s ease-in-out infinite 1s;
+    border: 3px solid #4ecdc4;
 }
 
-@keyframes pinBounce {
-    0% {
-        transform: translate(-50%, -80%) scale(0.7) rotate(0deg);
-        opacity: 0;
-    }
-    60% {
-        transform: translate(-50%, -48%) scale(1.08) rotate(0deg);
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(1) rotate(0deg);
-        opacity: 1;
-    }
-}
-
-@keyframes imageGlow {
-    0%, 100% {
-        box-shadow: 
-            0 10px 30px rgba(67, 97, 238, 0.3),
-            0 0 0 0 rgba(67, 97, 238, 0.3),
-            inset 0 2px 4px rgba(255, 255, 255, 0.5);
-    }
-    50% {
-        box-shadow: 
-            0 12px 35px rgba(67, 97, 238, 0.4),
-            0 0 0 6px rgba(67, 97, 238, 0),
-            inset 0 2px 4px rgba(255, 255, 255, 0.5);
-    }
-}
-
-/* 핀 내부 이미지 - 원형으로 자르기 */
 .map-pin.has-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 50%;
-    display: block;
-    pointer-events: none;
-    transition: transform 0.3s ease;
 }
 
-/* 호버 효과 - 차분하게 */
-.map-pin:hover {
-    z-index: 11;
-    animation: none; /* 호버 시 펄스 중지 */
-}
-
-.map-pin:not(.has-image):hover {
-    transform: translate(-50%, -100%) rotate(-45deg) scale(1.15);
-    box-shadow: 
-        0 12px 30px rgba(67, 97, 238, 0.5),
-        0 0 20px rgba(124, 58, 237, 0.4);
-}
-
-.map-pin.has-image:hover {
-    transform: translate(-50%, -50%) scale(1.1);
-    box-shadow: 
-        0 15px 40px rgba(67, 97, 238, 0.4),
-        0 0 25px rgba(67, 97, 238, 0.5),
-        inset 0 2px 8px rgba(255, 255, 255, 0.8);
-    animation: none;
-}
-
-.map-pin.has-image:hover img {
-    transform: scale(1.05);
-}
-
-/* 액티브 상태 */
-.map-pin:active {
-    transform: translate(-50%, -100%) rotate(-45deg) scale(0.9);
-}
-
-.map-pin.has-image:active {
-    transform: translate(-50%, -50%) scale(0.9);
-}
-
-/* =====================
-    모달 디자인 - 대폭 개선
-===================== */
-.hidden { display: none !important; }
-
-#post-modal, #view-modal {
-    position: fixed; inset: 0;
-    background: rgba(15, 23, 42, 0.7);
-    backdrop-filter: blur(12px);
-    z-index: 999;
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-    padding: 20px;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { 
-        opacity: 0;
-        backdrop-filter: blur(0px);
-    }
-    to { 
-        opacity: 1;
-        backdrop-filter: blur(12px);
-    }
-}
-
-.modal-box {
-    background: white;
-    padding: 45px;
-    border-radius: 24px;
-    box-shadow: 
-        0 25px 50px rgba(0, 0, 0, 0.2),
-        0 0 100px rgba(67, 97, 238, 0.1);
-    width: 100%;
-    max-width: 750px;
-    max-height: 90vh;
-    overflow-y: auto;
-    animation: modalSlide 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    position: relative;
-}
-
-@keyframes modalSlide {
-    from { 
-        opacity: 0;
-        transform: translateY(20px) scale(0.98);
-    }
-    to { 
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* 모달 배경 글로우 효과 */
-.modal-box::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    background: linear-gradient(135deg, var(--primary-color), #7c3aed);
-    border-radius: 24px;
-    opacity: 0;
-    z-index: -1;
-    transition: opacity 0.3s ease;
-}
-
-.modal-box:hover::before {
-    opacity: 0.1;
-}
-
-@media (max-width: 640px) {
-    .modal-box {
-        padding: 30px;
-        max-height: 85vh;
-        border-radius: 20px;
-    }
-}
-
-.modal-box h2 {
-    margin: 0 0 30px 0;
-    font-size: 32px;
-    font-weight: 800;
-    background: linear-gradient(135deg, var(--primary-color), #7c3aed);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-@media (max-width: 640px) {
-    .modal-box h2 {
-        font-size: 24px;
-    }
-}
-
-/* 입력 필드 - 개선된 스타일 */
-.modal-box input[type="text"],
-.modal-box textarea,
-.modal-box input[type="file"] {
-    width: 100%;
-    padding: 18px;
-    margin-bottom: 22px;
-    border: 2px solid #e2e8f0;
-    border-radius: 16px;
-    font-size: 16px;
-    font-family: inherit;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    background: #fafbfc;
-}
-
-.modal-box input[type="text"]:focus,
-.modal-box textarea:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    background: white;
-    box-shadow: 
-        0 0 0 4px rgba(67, 97, 238, 0.1),
-        0 4px 12px rgba(67, 97, 238, 0.15);
-}
-
-.modal-box textarea { 
-    min-height: 260px;
-    resize: vertical;
-}
-
-@media (max-width: 640px) {
-    .modal-box textarea {
-        min-height: 180px;
-    }
-}
-
-/* 이미지 미리보기 컨테이너 */
-#image-preview-container {
-    margin-bottom: 20px;
+.modal {
     display: none;
-    animation: fadeInScale 0.3s ease;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
 }
 
-#image-preview-container.show {
-    display: block;
+.modal.show {
+    display: flex;
 }
 
-@keyframes fadeInScale {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
-#image-preview {
-    width: 100%;
-    max-height: 300px;
-    object-fit: cover;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    border: 3px solid #e2e8f0;
-    transition: all 0.3s ease;
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #eee;
 }
 
-#image-preview:hover {
-    transform: scale(1.01);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
+.modal-header h2 {
+    color: #333;
+    font-size: 24px;
 }
 
-/* 보기 모달 이미지 */
-#view-image {
-    width: 100%;
-    max-height: 500px;
-    object-fit: contain;
-    border-radius: 16px;
-    margin-bottom: 25px;
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    padding: 10px;
-    box-shadow: 
-        0 15px 40px rgba(0, 0, 0, 0.12),
-        inset 0 2px 4px rgba(255, 255, 255, 0.5);
-    animation: imageAppear 0.4s ease;
-}
-
-@keyframes imageAppear {
-    from {
-        opacity: 0;
-        transform: scale(0.97) translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-@media (max-width: 640px) {
-    #view-image {
-        max-height: 300px;
-    }
-}
-
-/* 보기 모달 내용 */
-#view-title {
+.close-btn {
+    background: none;
+    border: none;
     font-size: 28px;
-    font-weight: 800;
-    color: var(--text-main);
-    margin-bottom: 12px;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.2s;
 }
 
-#view-author {
+.close-btn:hover {
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 600;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
     font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 25px;
+    transition: border-color 0.2s;
 }
 
-#view-content {
-    font-size: 17px;
-    line-height: 1.7;
-    color: var(--text-main);
-    margin-bottom: 30px;
-    white-space: pre-wrap;
-    word-break: break-word;
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
 }
 
-/* 버튼 스타일 - 대폭 개선 */
-.modal-buttons { 
-    display: flex; 
-    gap: 15px;
-    flex-wrap: wrap;
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
 }
 
-.modal-box button {
-    flex: 1; 
-    min-width: 130px;
-    padding: 18px;
-    border: none; 
-    border-radius: 16px;
-    cursor: pointer; 
-    font-size: 17px; 
-    font-weight: 700;
-    transition: all 0.2s ease;
-    position: relative;
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-danger {
+    background: #ff6b6b;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #ee5a52;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.image-preview {
+    display: none;
+    margin-top: 10px;
+    border-radius: 8px;
     overflow: hidden;
 }
 
-.modal-box button::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at center, rgba(255,255,255,0.3) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
+.image-preview.show {
+    display: block;
 }
 
-.modal-box button:hover::before {
-    opacity: 1;
+.image-preview img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
 }
 
-@media (max-width: 640px) {
-    .modal-box button {
-        padding: 15px;
-        font-size: 15px;
-    }
+.view-image {
+    width: 100%;
+    max-height: 300px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin: 15px 0;
 }
 
-#save-post { 
-    background: linear-gradient(135deg, var(--primary-color), #7c3aed);
-    color: white;
-    box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+.view-image.hidden {
+    display: none;
 }
 
-#save-post:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(67, 97, 238, 0.35);
-}
-
-#save-post:active {
-    transform: translateY(-1px) scale(0.98);
-}
-
-#close-modal, #close-view-modal { 
-    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-    color: var(--text-muted);
-}
-
-#close-modal:hover, #close-view-modal:hover {
-    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-}
-
-#delete-post { 
-    background: linear-gradient(135deg, #fee2e2, #fecaca);
-    color: var(--danger-color);
-}
-
-#delete-post:hover {
-    background: linear-gradient(135deg, #fecaca, #fca5a5);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(239, 68, 68, 0.25);
-}
-
-/* 사용자명 버튼 - 차분한 효과 */
-#change-username {
-    position: fixed; 
-    top: 25px; 
-    right: 25px;
-    padding: 15px 28px; 
-    background: linear-gradient(135deg, white, #f8fafc);
-    border: 2px solid rgba(67, 97, 238, 0.2);
-    border-radius: 50px;
-    font-weight: 700; 
-    box-shadow: 
-        0 10px 30px rgba(0, 0, 0, 0.15),
-        0 0 0 0 rgba(67, 97, 238, 0.3);
-    z-index: 100; 
-    cursor: pointer;
-    transition: all 0.3s ease;
-    color: var(--text-main);
-}
-
-#change-username:hover {
-    background: linear-gradient(135deg, var(--primary-color), #7c3aed);
-    color: white;
-    transform: translateY(-3px);
-    box-shadow: 
-        0 15px 35px rgba(67, 97, 238, 0.25),
-        0 0 0 6px rgba(67, 97, 238, 0.1);
-}
-
-#change-username:active {
-    transform: translateY(-2px) scale(0.98);
-}
-
-@media (max-width: 640px) {
-    #change-username {
-        top: 15px;
-        right: 15px;
-        padding: 12px 20px;
-        font-size: 14px;
-    }
-}
-
-/* 스크롤바 스타일링 */
-.modal-box::-webkit-scrollbar {
-    width: 10px;
-}
-
-.modal-box::-webkit-scrollbar-track {
-    background: linear-gradient(180deg, #f1f5f9, #e2e8f0);
+.auth-info {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    padding: 15px 20px;
     border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.modal-box::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--primary-color), #7c3aed);
+.auth-info span {
+    color: #333;
+    font-weight: 600;
+}
+
+.instructions {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 15px;
     border-radius: 10px;
-    border: 2px solid #f1f5f9;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    max-width: 250px;
 }
 
-.modal-box::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, var(--primary-hover), #6d28d9);
+.instructions h3 {
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 16px;
 }
 
-/* 파일 입력 스타일링 */
-input[type="file"] {
-    cursor: pointer;
-}
-
-input[type="file"]::file-selector-button {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--primary-color), #7c3aed);
-    color: white;
-    cursor: pointer;
-    font-weight: 700;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
-}
-
-input[type="file"]::file-selector-button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(67, 97, 238, 0.35);
-}
-
-/* 로딩 애니메이션 */
-@keyframes spin {
-    to { transform: rotate(360deg); }
+.instructions p {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .loading {
-    display: inline-block;
-    width: 22px;
-    height: 22px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-}
-
-/* 반짝이는 효과 */
-@keyframes sparkle {
-    0%, 100% { opacity: 0; transform: scale(0); }
-    50% { opacity: 1; transform: scale(1); }
-}
-
-.sparkle {
-    position: absolute;
-    width: 4px;
-    height: 4px;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background: white;
-    border-radius: 50%;
-    animation: sparkle 1.5s ease-in-out infinite;
-    pointer-events: none;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    z-index: 2000;
 }
 
+.loading.hidden {
+    display: none;
+}
+
+.auth-toggle {
+    margin-top: 15px;
+    text-align: center;
+    color: #667eea;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.auth-toggle:hover {
+    text-decoration: underline;
+}
