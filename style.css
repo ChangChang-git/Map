@@ -50,7 +50,7 @@ html, body {
 /* 1. 일반 핀 (이미지가 없는 경우) - 물방울 모양 */
 .map-pin {
     position: absolute;
-    width: 36px; height: 36px;
+    width: 43px; height: 43px;
     background: linear-gradient(135deg, var(--primary-color) 0%, #7c3aed 100%);
     border: 4px solid white;
     border-radius: 50% 50% 50% 0;
@@ -60,17 +60,17 @@ html, body {
         0 8px 20px rgba(67, 97, 238, 0.4),
         0 0 0 0 rgba(67, 97, 238, 0.6);
     z-index: 10;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    animation: pinDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.3s ease;
+    animation: pinDrop 0.5s ease-out;
 }
 
 @keyframes pinDrop {
     0% {
-        transform: translate(-50%, -200%) rotate(-45deg) scale(0);
+        transform: translate(-50%, -120%) rotate(-45deg) scale(0.8);
         opacity: 0;
     }
-    50% {
-        transform: translate(-50%, -90%) rotate(-45deg) scale(1.1);
+    70% {
+        transform: translate(-50%, -98%) rotate(-45deg) scale(1.05);
     }
     100% {
         transform: translate(-50%, -100%) rotate(-45deg) scale(1);
@@ -78,29 +78,29 @@ html, body {
     }
 }
 
-/* 펄스 효과 */
+/* 펄스 효과 - 더 차분하게 */
 @keyframes pulse {
     0%, 100% {
         box-shadow: 
             0 8px 20px rgba(67, 97, 238, 0.4),
-            0 0 0 0 rgba(67, 97, 238, 0.6);
+            0 0 0 0 rgba(67, 97, 238, 0.4);
     }
     50% {
         box-shadow: 
             0 8px 20px rgba(67, 97, 238, 0.4),
-            0 0 0 15px rgba(67, 97, 238, 0);
+            0 0 0 8px rgba(67, 97, 238, 0);
     }
 }
 
 .map-pin {
-    animation: pinDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), 
-               pulse 2s ease-in-out infinite 0.6s;
+    animation: pinDrop 0.5s ease-out, 
+               pulse 3s ease-in-out infinite 1s;
 }
 
 /* 2. 이미지가 있는 핀 - 원형 고리 + 글로우 효과 */
 .map-pin.has-image {
-    width: 60px;
-    height: 60px;
+    width: 72px;
+    height: 72px;
     background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
     border: 4px solid var(--primary-color);
     border-radius: 50%;
@@ -111,17 +111,17 @@ html, body {
         0 10px 30px rgba(67, 97, 238, 0.3),
         0 0 0 0 rgba(67, 97, 238, 0.4),
         inset 0 2px 4px rgba(255, 255, 255, 0.5);
-    animation: pinBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
-               imageGlow 3s ease-in-out infinite 0.6s;
+    animation: pinBounce 0.5s ease-out,
+               imageGlow 4s ease-in-out infinite 1s;
 }
 
 @keyframes pinBounce {
     0% {
-        transform: translate(-50%, -150%) scale(0) rotate(180deg);
+        transform: translate(-50%, -80%) scale(0.7) rotate(0deg);
         opacity: 0;
     }
     60% {
-        transform: translate(-50%, -45%) scale(1.15) rotate(-10deg);
+        transform: translate(-50%, -48%) scale(1.08) rotate(0deg);
     }
     100% {
         transform: translate(-50%, -50%) scale(1) rotate(0deg);
@@ -133,13 +133,13 @@ html, body {
     0%, 100% {
         box-shadow: 
             0 10px 30px rgba(67, 97, 238, 0.3),
-            0 0 0 0 rgba(67, 97, 238, 0.4),
+            0 0 0 0 rgba(67, 97, 238, 0.3),
             inset 0 2px 4px rgba(255, 255, 255, 0.5);
     }
     50% {
         box-shadow: 
-            0 15px 40px rgba(67, 97, 238, 0.5),
-            0 0 0 8px rgba(67, 97, 238, 0),
+            0 12px 35px rgba(67, 97, 238, 0.4),
+            0 0 0 6px rgba(67, 97, 238, 0),
             inset 0 2px 4px rgba(255, 255, 255, 0.5);
     }
 }
@@ -152,34 +152,33 @@ html, body {
     border-radius: 50%;
     display: block;
     pointer-events: none;
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.3s ease;
 }
 
-/* 호버 효과 - 극대화 */
+/* 호버 효과 - 차분하게 */
 .map-pin:hover {
     z-index: 11;
     animation: none; /* 호버 시 펄스 중지 */
 }
 
 .map-pin:not(.has-image):hover {
-    transform: translate(-50%, -100%) rotate(-45deg) scale(1.3);
+    transform: translate(-50%, -100%) rotate(-45deg) scale(1.15);
     box-shadow: 
-        0 15px 40px rgba(67, 97, 238, 0.6),
-        0 0 30px rgba(124, 58, 237, 0.5);
-    filter: brightness(1.2);
+        0 12px 30px rgba(67, 97, 238, 0.5),
+        0 0 20px rgba(124, 58, 237, 0.4);
 }
 
 .map-pin.has-image:hover {
-    transform: translate(-50%, -50%) scale(1.2);
+    transform: translate(-50%, -50%) scale(1.1);
     box-shadow: 
-        0 20px 50px rgba(67, 97, 238, 0.5),
-        0 0 40px rgba(67, 97, 238, 0.6),
+        0 15px 40px rgba(67, 97, 238, 0.4),
+        0 0 25px rgba(67, 97, 238, 0.5),
         inset 0 2px 8px rgba(255, 255, 255, 0.8);
     animation: none;
 }
 
 .map-pin.has-image:hover img {
-    transform: scale(1.1) rotate(5deg);
+    transform: scale(1.05);
 }
 
 /* 액티브 상태 */
@@ -237,7 +236,7 @@ html, body {
 @keyframes modalSlide {
     from { 
         opacity: 0;
-        transform: translateY(40px) scale(0.95);
+        transform: translateY(20px) scale(0.98);
     }
     to { 
         opacity: 1;
@@ -277,12 +276,6 @@ html, body {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: titleShine 3s ease-in-out infinite;
-}
-
-@keyframes titleShine {
-    0%, 100% { filter: brightness(1); }
-    50% { filter: brightness(1.2); }
 }
 
 @media (max-width: 640px) {
@@ -313,8 +306,7 @@ html, body {
     background: white;
     box-shadow: 
         0 0 0 4px rgba(67, 97, 238, 0.1),
-        0 8px 20px rgba(67, 97, 238, 0.15);
-    transform: translateY(-2px);
+        0 4px 12px rgba(67, 97, 238, 0.15);
 }
 
 .modal-box textarea { 
@@ -332,7 +324,7 @@ html, body {
 #image-preview-container {
     margin-bottom: 20px;
     display: none;
-    animation: fadeInScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: fadeInScale 0.3s ease;
 }
 
 #image-preview-container.show {
@@ -361,8 +353,8 @@ html, body {
 }
 
 #image-preview:hover {
-    transform: scale(1.02);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+    transform: scale(1.01);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
 }
 
 /* 보기 모달 이미지 */
@@ -377,13 +369,13 @@ html, body {
     box-shadow: 
         0 15px 40px rgba(0, 0, 0, 0.12),
         inset 0 2px 4px rgba(255, 255, 255, 0.5);
-    animation: imageAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: imageAppear 0.4s ease;
 }
 
 @keyframes imageAppear {
     from {
         opacity: 0;
-        transform: scale(0.9) translateY(20px);
+        transform: scale(0.97) translateY(10px);
     }
     to {
         opacity: 1;
@@ -403,25 +395,12 @@ html, body {
     font-weight: 800;
     color: var(--text-main);
     margin-bottom: 12px;
-    animation: slideInLeft 0.5s ease;
-}
-
-@keyframes slideInLeft {
-    from {
-        opacity: 0;
-        transform: translateX(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
 }
 
 #view-author {
     font-size: 14px;
     color: var(--text-muted);
     margin-bottom: 25px;
-    animation: slideInLeft 0.5s ease 0.1s both;
 }
 
 #view-content {
@@ -431,7 +410,6 @@ html, body {
     margin-bottom: 30px;
     white-space: pre-wrap;
     word-break: break-word;
-    animation: slideInLeft 0.5s ease 0.2s both;
 }
 
 /* 버튼 스타일 - 대폭 개선 */
@@ -450,7 +428,7 @@ html, body {
     cursor: pointer; 
     font-size: 17px; 
     font-weight: 700;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
 }
@@ -482,8 +460,8 @@ html, body {
 }
 
 #save-post:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(67, 97, 238, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(67, 97, 238, 0.35);
 }
 
 #save-post:active {
@@ -497,8 +475,8 @@ html, body {
 
 #close-modal:hover, #close-view-modal:hover {
     background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 }
 
 #delete-post { 
@@ -508,11 +486,11 @@ html, body {
 
 #delete-post:hover {
     background: linear-gradient(135deg, #fecaca, #fca5a5);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(239, 68, 68, 0.25);
 }
 
-/* 사용자명 버튼 - 플로팅 효과 */
+/* 사용자명 버튼 - 차분한 효과 */
 #change-username {
     position: fixed; 
     top: 25px; 
@@ -527,28 +505,17 @@ html, body {
         0 0 0 0 rgba(67, 97, 238, 0.3);
     z-index: 100; 
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.3s ease;
     color: var(--text-main);
-    animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-5px);
-    }
 }
 
 #change-username:hover {
     background: linear-gradient(135deg, var(--primary-color), #7c3aed);
     color: white;
-    transform: translateY(-5px);
+    transform: translateY(-3px);
     box-shadow: 
-        0 20px 40px rgba(67, 97, 238, 0.3),
-        0 0 0 8px rgba(67, 97, 238, 0.1);
-    animation: none;
+        0 15px 35px rgba(67, 97, 238, 0.25),
+        0 0 0 6px rgba(67, 97, 238, 0.1);
 }
 
 #change-username:active {
@@ -602,8 +569,8 @@ input[type="file"]::file-selector-button {
 }
 
 input[type="file"]::file-selector-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(67, 97, 238, 0.35);
 }
 
 /* 로딩 애니메이션 */
