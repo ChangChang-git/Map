@@ -1,79 +1,82 @@
-/* =====================
-    기본 설정
-===================== */
+/* 기본 테마 설정 */
+:root {
+    --primary-color: #4361ee;
+    --primary-hover: #3730a3;
+    --danger-color: #ef4444;
+    --bg-gray: #f8fafc;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --radius: 16px;
+    --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
 html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
     box-sizing: border-box;
-    overflow: hidden; /* 전체 페이지 스크롤 방지 */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    background-color: var(--bg-gray);
+    color: var(--text-main);
 }
 
-*, *:before, *:after {
-    box-sizing: inherit;
-}
+*, *:before, *:after { box-sizing: inherit; }
 
 /* =====================
-    지도 컨테이너 & 이미지
+    지도 컨테이너
 ===================== */
 #map-container {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
     position: relative;
-    background: #f0f0f0;
     cursor: grab;
-    touch-action: none; /* 모바일 터치 간섭 방지 */
+    touch-action: none;
 }
 
-#map-container:active {
-    cursor: grabbing;
-}
+#map-container:active { cursor: grabbing; }
 
 #map-image {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); /* 초기 중앙 정렬 */
+    transform: translate(-50%, -50%);
     max-width: none;
     user-select: none;
     -webkit-user-drag: none;
-    /* Map.js에서 드래그 기능을 구현했다면 auto여야 작동합니다 */
-    pointer-events: auto; 
-    display: block;
+    pointer-events: auto;
+    transition: filter 0.3s ease;
 }
 
 /* =====================
-    핀 (Pin) 스타일
+    세련된 커스텀 핀
 ===================== */
 .map-pin {
     position: absolute;
-    width: 30px;
-    height: 30px;
-    background: #ff4757;
+    width: 34px;
+    height: 34px;
+    background: var(--primary-color);
     border: 3px solid white;
     border-radius: 50% 50% 50% 0;
-    /* 핀 끝이 정확한 지점을 가리키도록 정렬 */
     transform: translate(-50%, -100%) rotate(-45deg);
     cursor: pointer;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-    transition: transform 0.2s;
+    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 10;
-    pointer-events: auto;
 }
 
 .map-pin:hover {
-    transform: translate(-50%, -100%) rotate(-45deg) scale(1.2);
+    transform: translate(-50%, -110%) rotate(-45deg) scale(1.15);
+    background: var(--primary-hover);
 }
 
-/* 핀 내부의 하얀 점 */
 .map-pin::after {
     content: '';
     position: absolute;
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     background: white;
     border-radius: 50%;
     top: 50%;
@@ -82,155 +85,143 @@ html, body {
 }
 
 /* =====================
-    모달 (Modal) 공통
+    모달 디자인 (애플 스타일)
 ===================== */
-.hidden {
-    display: none !important;
-}
+.hidden { display: none !important; }
 
 #post-modal, #view-modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.6);
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5); /* 어두운 오버레이 */
+    backdrop-filter: blur(4px); /* 배경 흐림 효과 */
     z-index: 999;
-    display: flex; /* hidden이 아닐 때 중앙 정렬 */
+    display: flex;
     align-items: center;
     justify-content: center;
+    padding: 20px;
 }
 
 .modal-box {
     background: white;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-    width: 90%;
-    max-width: 400px;
-    max-height: 90vh;
+    padding: 32px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 420px;
+    max-height: 85vh;
     overflow-y: auto;
+    animation: modalSlideUp 0.4s ease;
+}
+
+@keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-box h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    color: #2c3e50;
-    font-size: 24px;
+    margin: 0 0 20px 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
-/* 입력창 스타일 */
+/* 입력 필드 고도화 */
 .modal-box input[type="text"],
 .modal-box textarea {
     width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.3s;
+    padding: 14px;
+    margin-bottom: 16px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+    background: #f8fafc;
+    transition: all 0.2s;
 }
 
 .modal-box input[type="text"]:focus,
 .modal-box textarea:focus {
     outline: none;
-    border-color: #3498db;
+    border-color: var(--primary-color);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
 }
 
-.modal-box textarea {
-    min-height: 120px;
-    resize: vertical;
-    font-family: inherit;
-}
+.modal-box textarea { min-height: 140px; line-height: 1.5; }
 
-.modal-box input[type="file"] {
-    margin-bottom: 15px;
-    width: 100%;
-}
-
-/* 버튼 스타일 */
+/* 버튼 그룹 */
 .modal-buttons {
     display: flex;
-    gap: 10px;
-    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
 }
 
 .modal-box button {
-    padding: 10px 20px;
+    flex: 1;
+    padding: 14px;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
-    transition: all 0.3s;
+    transition: all 0.2s;
 }
 
-#save-post { background: #3498db; color: white; }
-#save-post:hover { background: #2980b9; }
+#save-post { background: var(--primary-color); color: white; }
+#save-post:hover { background: var(--primary-hover); transform: translateY(-1px); }
 
-#close-modal, #close-view-modal { background: #95a5a6; color: white; }
-#close-modal:hover, #close-view-modal:hover { background: #7f8c8d; }
+#close-modal, #close-view-modal { background: #f1f5f9; color: var(--text-muted); }
+#close-modal:hover { background: #e2e8f0; }
 
-#delete-post { background: #e74c3c; color: white; }
-#delete-post:hover { background: #c0392b; }
+#delete-post { background: #fef2f2; color: var(--danger-color); }
+#delete-post:hover { background: #fee2e2; }
 
 /* =====================
-    기능성 요소
+    기타 UI 요소
 ===================== */
 #change-username {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 10px 20px;
+    top: 24px;
+    right: 24px;
+    padding: 12px 20px;
     background: white;
-    border: 2px solid #3498db;
-    color: #3498db;
-    border-radius: 8px;
+    border: none;
+    color: var(--text-main);
+    border-radius: 30px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
     z-index: 100;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: all 0.2s;
 }
 
 #change-username:hover {
-    background: #3498db;
-    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
 }
 
 #view-author {
-    color: #7f8c8d;
     font-size: 14px;
-    margin-bottom: 15px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
 }
 
 #view-content {
-    white-space: pre-wrap;
-    line-height: 1.6;
-    color: #2c3e50;
-    margin-bottom: 20px;
+    font-size: 16px;
+    line-height: 1.7;
+    color: #334155;
+    margin: 16px 0;
 }
 
 #view-image {
-    max-width: 100%;
-    display: block;
-    margin: 0 auto 15px auto;
-    border-radius: 8px;
+    width: 100%;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    object-fit: cover;
 }
 
-/* =====================
-    반응형 설정
-===================== */
-@media (max-width: 600px) {
-    .modal-box {
-        padding: 20px;
-    }
-    
-    #change-username {
-        top: 10px;
-        right: 10px;
-        padding: 8px 15px;
-        font-size: 12px;
-    }
-}
+/* 스크롤바 커스텀 */
+.modal-box::-webkit-scrollbar { width: 6px; }
+.modal-box::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
