@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 로딩을 처음에 표시하도록 hidden 클래스 제거 -->
     <div id="loading" class="loading">
         <p>로딩 중...</p>
     </div>
@@ -22,7 +21,7 @@
         <button class="btn btn-secondary btn-sm" id="logout-btn">로그아웃</button>
     </div>
     <div id="map-container">
-    <img id="map-image" src="map_floor_1.png" alt="지도">
+        <img id="map-image" src="map_floor_1.png" alt="지도">
     </div>
     <!-- 로그인 모달 -->
     <div id="login-modal" class="modal">
@@ -78,14 +77,31 @@
             </div>
             <p style="color: #666; margin-bottom: 15px;"><strong id="view-author"></strong></p>
             <img id="view-image" class="view-image hidden" alt="첨부 이미지">
-            <p id="view-content" style="line-height: 1.6; color: #333;"></p>
+            <p id="view-content" style="line-height: 1.6; color: #333; margin-bottom: 20px;"></p>
+            
+            <!-- 좋아요 섹션 -->
+            <div class="like-section">
+                <button class="btn-like" id="like-btn">
+                    <span class="heart">♡</span>
+                    <span id="like-count">0</span>
+                </button>
+            </div>
+
+            <!-- 댓글 섹션 -->
+            <div class="comment-section">
+                <h3>댓글 <span id="comment-count">0</span></h3>
+                <div class="comment-input-area">
+                    <textarea id="comment-input" placeholder="댓글을 입력하세요..." rows="2"></textarea>
+                    <button class="btn btn-primary btn-sm" id="add-comment">댓글 작성</button>
+                </div>
+                <div id="comments-list"></div>
+            </div>
+
             <div style="margin-top: 20px; display: flex; gap: 10px;">
                 <button class="btn btn-danger" id="delete-pin" style="display: none;">삭제</button>
             </div>
         </div>
     </div>
-    <script type="module" src="Map.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
-
-
