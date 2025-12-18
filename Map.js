@@ -256,11 +256,9 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.classList.add("hidden");
         selectedPin = null;
     };
-    loadPinsFromStorage();
-});
 
 
-function savePinsToStorage() {
+    function savePinsToStorage() {
     const pins = [];
 
     document.querySelectorAll(".map-pin").forEach(pin => {
@@ -289,6 +287,22 @@ function loadPinsFromStorage() {
         };
     });
 }
+
+
+
+
+
+
+    
+    loadPinsFromStorage();
+
+
+
+    
+});
+
+
+
 
 
 
