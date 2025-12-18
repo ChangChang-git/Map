@@ -1,20 +1,19 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-<title>학교 지도</title>
-<link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>학교 지도</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
 <div id="map-container">
-    <img id="map-image" src="https://via.placeholder.com/1200x800/cccccc/666666?text=School+Map" alt="학교 지도" />
+    <img id="map-image" src="map_floor_1.png" alt="학교 지도" />
 </div>
 
-<!-- 사용자 이름 변경 버튼 -->
 <button id="change-username">사용자 이름 변경</button>
 
-<!-- 새 핀 작성 모달 -->
 <div id="post-modal" class="hidden">
     <div class="modal-box">
         <h2>새 핀 작성</h2>
@@ -29,20 +28,21 @@
     </div>
 </div>
 
-<!-- 핀 보기 모달 -->
 <div id="view-modal" class="hidden">
     <div class="modal-box">
-        <h2 id="view-title"></h2>
-        <p id="view-author"></p>
-        <img id="view-image" class="hidden" alt="첨부 이미지" />
-        <p id="view-content"></p>
+        <h2 id="view-title">제목</h2>
+        <p id="view-author">작성자</p>
+        <div id="view-image-container">
+            <img id="view-image" class="hidden" alt="첨부 이미지" />
+        </div>
+        <p id="view-content">내용이 여기에 표시됩니다.</p>
         <div class="modal-buttons">
             <button id="delete-post" class="hidden">삭제</button>
             <button id="close-view-modal">닫기</button>
         </div>
     </div>
 </div>
+
+<script src="Map.js"></script>
 </body>
 </html>
-
-
