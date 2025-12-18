@@ -3,11 +3,11 @@ html, body {
     padding: 0;
     width: 100%;
     height: 100%;
-    overflow: hidden;
+    overflow: hidden; /* 스크롤 방지 */
 }
 
 /* =====================
-   지도 컨테이너
+    지도 컨테이너
 ===================== */
 #map-container {
     width: 100vw;
@@ -15,52 +15,65 @@ html, body {
     background-color: #f5f5f5;
     position: relative;
     overflow: hidden;
-    touch-action: none;
+    touch-action: none; /* 모바일 줌/팬 간섭 방지 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #map-image {
     position: absolute;
+    /* 초기 위치 설정 */
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(1);
     transform-origin: center center;
+    
+    /* 수정 포인트 1: 이미지가 클릭/드래그를 인식하도록 변경 */
+    pointer-events: auto; 
+    
+    /* 수정 포인트 2: 이미지의 최대 크기 제한 해제 및 기본 크기 확보 */
+    max-width: none;
     user-select: none;
-    pointer-events: none;
+    -webkit-user-drag: none;
+    
+    /* 확인용: 이미지가 안 보인다면 아래 border 주석을 해제해보세요 */
+    /* border: 2px solid red; */
 }
 
 /* =====================
-   핀
+    핀 (사용자가 클릭 시 생성되는 핀)
 ===================== */
 .map-pin {
     position: absolute;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background-color: #ff3b3b;
     border: 2px solid white;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     transform: translate(-50%, -50%);
-    pointer-events: none;
+    z-index: 10;
+    /* 핀은 클릭 이벤트를 받아야 하므로 auto (Map.js에서 조절 가능) */
+    pointer-events: auto; 
+    cursor: pointer;
 }
 
 /* =====================
-   모달
+    모달 (게시글 작성/보기)
 ===================== */
 
-/* 🔥 이게 핵심 */
+/* !important를 써서 스크립트에서 hidden 클래스 추가 시 무조건 숨김 */
 .hidden {
     display: none !important;
 }
 
-#post-modal {
+#post-modal, #view-modal {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.6);
     z-index: 1000;
-}
-
-/* hidden이 아닐 때만 표시 */
-#post-modal:not(.hidden) {
+    /* 기본적으로 flex로 설정하되 hidden 클래스로 제어 */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -68,24 +81,52 @@ html, body {
 
 .modal-box {
     background: white;
-    width: 90%;
+    width: 85%;
     max-width: 400px;
-    padding: 20px;
-    border-radius: 12px;
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
 
 .modal-box h2 {
     margin-top: 0;
+    font-size: 1.2rem;
+    color: #333;
 }
 
 .modal-box input,
 .modal-box textarea {
     width: 100%;
-    margin: 8px 0;
-    padding: 8px;
+    margin: 10px 0;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
 }
 
 .modal-buttons {
     display: flex;
-    justify-content: space-between;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.modal-buttons button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#save-post { background-color: #4A90E2; color: white; }
+#close-modal, #close-view-modal { background-color: #eee; }
+#delete-post { background-color: #ff4d4d; color: white; }
+
+/* 이미지 보기 모달용 */
+#view-image {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border-radius: 8px;
 }
