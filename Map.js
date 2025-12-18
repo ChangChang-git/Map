@@ -510,10 +510,14 @@ function openViewModal(pinData) {
     } else {
         deleteBtn.style.display = "none";
     }
-    
+      if (viewUnsubscribe) {
+        viewUnsubscribe();
+        viewUnsubscribe = null;
+    }
     // 실시간 업데이트 리스너
-    const pinRef = doc(db, "pins", pinData.id);
-    const unsubscribe = onSnapshot(pinRef, (doc) => {
+   const pinRef = doc(db, "pins", pinData.id);
+    // 변수에 직접 함수를 저장합니다 (글자로 변하지 않음)
+    viewUnsubscribe = onSnapshot(pinRef, (doc) => {
         if (doc.exists()) {
             const updatedData = doc.data();
             currentPinData = { id: doc.id, ...updatedData };
@@ -532,22 +536,14 @@ function openViewModal(pinData) {
             // 댓글 업데이트
             const updatedComments = updatedData.comments || [];
             document.getElementById("comment-count").textContent = updatedComments.length;
-            renderComments(updatedComments);
+           renderComments(updatedData.comments || []);
         }
     });
     
-   if (viewUnsubscribe) {
-        viewUnsubscribe();
-        viewUnsubscribe = null;
-    }
+ 
 
-    const pinRef = doc(db, "pins", pinData.id);
-    // 변수에 직접 함수를 저장합니다 (글자로 변하지 않음)
-    viewUnsubscribe = onSnapshot(pinRef, (doc) => {
-        if (doc.exists()) {
-            const updatedData = doc.data();
-            // ... (중략: 기존 업데이트 로직) ...
-            renderComments(updatedData.comments || []);
+   
+          
         }
     });
 }
@@ -632,4 +628,5 @@ viewModal.addEventListener("click", (e) => {
         viewModal.classList.remove("show");
     }
 });
+
 
