@@ -15,7 +15,7 @@ html, body {
     width: 100%; height: 100%;
     box-sizing: border-box;
     overflow: hidden;
-    font-family: 'Pretendard', system-ui, sans-serif;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
     background-color: var(--bg-gray);
 }
 
@@ -27,6 +27,10 @@ html, body {
     cursor: grab; touch-action: none;
 }
 
+#map-container:active {
+    cursor: grabbing;
+}
+
 #map-image {
     position: absolute;
     top: 50%; left: 50%;
@@ -34,6 +38,7 @@ html, body {
     max-width: none;
     user-select: none;
     -webkit-user-drag: none;
+    pointer-events: none; /* 이미지 자체는 클릭 불가 */
 }
 
 /* =====================
@@ -47,37 +52,58 @@ html, body {
     background: var(--primary-color);
     border: 3px solid white;
     border-radius: 50% 50% 50% 0;
-    transform: translate(-50%, -100%) rotate(-45deg); /* 정적인 고정 위치 */
+    transform: translate(-50%, -100%) rotate(-45deg);
     cursor: pointer;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     z-index: 10;
+    transition: filter 0.2s ease, transform 0.2s ease;
 }
 
 /* 2. 이미지가 있는 핀 (원형 고리 디자인) */
 .map-pin.has-image {
-    width: 50px;           /* 이미지용 핀은 조금 더 크게 */
+    width: 50px;
     height: 50px;
-    background: white;     /* 고리 색상 */
-    border: 3px solid var(--primary-color); /* 테두리 링 */
-    border-radius: 50%;    /* 완벽한 원형 */
-    transform: translate(-50%, -50%) rotate(0deg); /* 회전 없이 정위치 */
-    padding: 2px;          /* 링과 이미지 사이 간격 */
+    background: white;
+    border: 3px solid var(--primary-color);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
+    padding: 2px;
     overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* 핀 내부 이미지 설정 */
 .map-pin.has-image img {
     width: 100%;
     height: 100%;
-    object-fit: cover;     /* 원형 안에 꽉 차게 */
-    border-radius: 50%;    /* 이미지를 원형으로 자름 */
+    object-fit: cover;
+    border-radius: 50%;
     display: block;
+    pointer-events: none; /* 이미지는 클릭 이벤트 무시 */
 }
 
-/* 애니메이션 제거: hover 시 크기만 아주 살짝 선명해지는 정도 */
+/* 호버 효과 개선 */
 .map-pin:hover {
     z-index: 11;
+}
+
+.map-pin:not(.has-image):hover {
     filter: brightness(1.1);
+    transform: translate(-50%, -100%) rotate(-45deg) scale(1.1);
+}
+
+.map-pin.has-image:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+}
+
+/* 액티브 상태 */
+.map-pin:active {
+    transform: translate(-50%, -100%) rotate(-45deg) scale(0.95);
+}
+
+.map-pin.has-image:active {
+    transform: translate(-50%, -50%) scale(0.95);
 }
 
 /* =====================
@@ -90,7 +116,16 @@ html, body {
     background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(8px);
     z-index: 999;
-    display: flex; align-items: center; justify-content: center;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    padding: 20px; /* 모바일 여백 */
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .modal-box {
@@ -98,57 +133,251 @@ html, body {
     padding: 40px;
     border-radius: var(--radius);
     box-shadow: var(--shadow);
-    width: 95%;
-    max-width: 700px; /* 출력 창 크게 */
+    width: 100%;
+    max-width: 700px;
     max-height: 90vh;
     overflow-y: auto;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 모바일 반응형 */
+@media (max-width: 640px) {
+    .modal-box {
+        padding: 25px;
+        max-height: 85vh;
+    }
 }
 
 .modal-box h2 {
     margin: 0 0 25px 0;
     font-size: 28px;
     font-weight: 800;
+    color: var(--text-main);
+}
+
+@media (max-width: 640px) {
+    .modal-box h2 {
+        font-size: 22px;
+    }
 }
 
 .modal-box input[type="text"],
-.modal-box textarea {
+.modal-box textarea,
+.modal-box input[type="file"] {
     width: 100%;
     padding: 16px;
     margin-bottom: 20px;
     border: 1.5px solid #e2e8f0;
     border-radius: 14px;
     font-size: 16px;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+}
+
+.modal-box input[type="text"]:focus,
+.modal-box textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
 }
 
 .modal-box textarea { 
-    min-height: 250px; /* 입력창 크게 */
+    min-height: 250px;
+    resize: vertical;
+}
+
+@media (max-width: 640px) {
+    .modal-box textarea {
+        min-height: 180px;
+    }
 }
 
 #view-image {
     width: 100%;
-    max-height: 500px; /* 보기 창 이미지 크게 */
+    max-height: 500px;
     object-fit: contain;
     border-radius: 14px;
     margin-bottom: 20px;
     background: #f8fafc;
 }
 
-.modal-buttons { display: flex; gap: 15px; }
-
-.modal-box button {
-    flex: 1; padding: 16px;
-    border: none; border-radius: 14px;
-    cursor: pointer; font-size: 16px; font-weight: 700;
+@media (max-width: 640px) {
+    #view-image {
+        max-height: 300px;
+    }
 }
 
-#save-post { background: var(--primary-color); color: white; }
-#close-modal, #close-view-modal { background: #f1f5f9; color: var(--text-muted); }
-#delete-post { background: #fff1f2; color: var(--danger-color); }
+/* 보기 모달 내용 */
+#view-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 10px;
+}
+
+#view-author {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}
+
+#view-content {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-main);
+    margin-bottom: 25px;
+    white-space: pre-wrap; /* 줄바꿈 유지 */
+    word-break: break-word;
+}
+
+.modal-buttons { 
+    display: flex; 
+    gap: 15px;
+    flex-wrap: wrap; /* 모바일 대응 */
+}
+
+.modal-box button {
+    flex: 1; 
+    min-width: 120px; /* 최소 너비 */
+    padding: 16px;
+    border: none; 
+    border-radius: 14px;
+    cursor: pointer; 
+    font-size: 16px; 
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+@media (max-width: 640px) {
+    .modal-box button {
+        padding: 14px;
+        font-size: 15px;
+    }
+}
+
+#save-post { 
+    background: var(--primary-color); 
+    color: white; 
+}
+
+#save-post:hover {
+    background: var(--primary-hover);
+}
+
+#save-post:active {
+    transform: scale(0.98);
+}
+
+#close-modal, #close-view-modal { 
+    background: #f1f5f9; 
+    color: var(--text-muted); 
+}
+
+#close-modal:hover, #close-view-modal:hover {
+    background: #e2e8f0;
+}
+
+#delete-post { 
+    background: #fff1f2; 
+    color: var(--danger-color); 
+}
+
+#delete-post:hover {
+    background: #ffe4e6;
+}
 
 #change-username {
-    position: fixed; top: 25px; right: 25px;
-    padding: 14px 24px; background: white;
-    border: none; border-radius: 50px;
-    font-weight: 600; box-shadow: var(--shadow);
-    z-index: 100; cursor: pointer;
+    position: fixed; 
+    top: 25px; 
+    right: 25px;
+    padding: 14px 24px; 
+    background: white;
+    border: none; 
+    border-radius: 50px;
+    font-weight: 600; 
+    box-shadow: var(--shadow);
+    z-index: 100; 
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-main);
+}
+
+#change-username:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+#change-username:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+    #change-username {
+        top: 15px;
+        right: 15px;
+        padding: 10px 18px;
+        font-size: 14px;
+    }
+}
+
+/* 스크롤바 스타일링 */
+.modal-box::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-box::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+.modal-box::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.modal-box::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* 파일 입력 스타일링 */
+input[type="file"]::file-selector-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary-color);
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s ease;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background: var(--primary-hover);
+}
+
+/* 로딩 애니메이션 */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
 }
