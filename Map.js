@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let lastTapY = 0;
     let blockDoubleTap = false;
 
+
+    const STORAGE_KEY = "mapPins";
     /* =====================
        유틸
     ===================== */
@@ -233,6 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById("save-post").onclick = () => {
         const author = authorInput.value.trim();
         const content = contentInput.value.trim();
+       
 
         if (!author || !content) {
             alert("작성자와 내용을 입력하세요");
@@ -248,7 +251,44 @@ document.addEventListener('DOMContentLoaded', function () {
             selectedPin.postData = { author, content };
         }
 
+         savePinsToStorage();
+
         modal.classList.add("hidden");
         selectedPin = null;
     };
+    loadPinsFromStorage();
 });
+
+
+function savePinsToStorage() {
+    const pins = [];
+
+    document.querySelectorAll(".map-pin").forEach(pin => {
+        if (!pin.postData) return;
+
+        pins.push({
+            x: Number(pin.dataset.x),
+            y: Number(pin.dataset.y),
+            author: pin.postData.author,
+            content: pin.postData.content
+        });
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(pins));
+}
+function loadPinsFromStorage() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (!data) return;
+
+    const pins = JSON.parse(data);
+    pins.forEach(p => {
+        const pin = createPin(p.x, p.y);
+        pin.postData = {
+            author: p.author,
+            content: p.content
+        };
+    });
+}
+
+
+
