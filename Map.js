@@ -31,8 +31,7 @@ let currentPinData = null;
 let viewUnsubscribe = null;
 let currentFloor = 1;
 const ADMIN_USERNAME = "admin";
-let currentFloor = 1;
-const ADMIN_USERNAME = "admin";
+
 
 const container = document.getElementById("map-container");
 const map = document.getElementById("map-image");
@@ -657,3 +656,4 @@ document.querySelectorAll(".floor-btn").forEach(btn => {
         changeFloor(floor);
     });
 });
+
