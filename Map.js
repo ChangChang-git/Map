@@ -282,3 +282,5 @@ function renderComments(comments) {
 // 시간 표시
 function getTimeAgo(date) {
     const seconds = Math.floor
+}
+
