@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="loading" class="loading hidden">
+    <div id="loading" class="loading">
         <p>로딩 중...</p>
     </div>
     <div class="instructions">
@@ -16,16 +16,13 @@
         🖱️ 휠/핀치: 확대/축소<br>
         🖱️ 더블클릭: 핀 생성</p>
     </div>
-    
-    <!-- 층 선택 버튼 -->
-    <div class="floor-selector">
+    <div id="floor-selector" class="floor-selector" style="display: none;">
         <button class="floor-btn active" data-floor="1">1층</button>
         <button class="floor-btn" data-floor="2">2층</button>
         <button class="floor-btn" data-floor="3">3층</button>
         <button class="floor-btn" data-floor="4">4층</button>
         <button class="floor-btn" data-floor="5">5층</button>
     </div>
-    
     <div id="auth-info" class="auth-info" style="display: none;">
         <span id="username-display"></span>
         <button class="btn btn-secondary btn-sm" id="logout-btn">로그아웃</button>
@@ -33,6 +30,7 @@
     <div id="map-container">
         <img id="map-image" src="map_floor_1.png" alt="지도">
     </div>
+
     <!-- 로그인 모달 -->
     <div id="login-modal" class="modal">
         <div class="modal-content">
@@ -53,6 +51,7 @@
             </div>
         </div>
     </div>
+
     <!-- 핀 생성 모달 -->
     <div id="create-modal" class="modal">
         <div class="modal-content">
@@ -68,6 +67,12 @@
                 <label>내용</label>
                 <textarea id="pin-content" placeholder="내용 입력"></textarea>
             </div>
+            <div class="form-group" id="admin-notice-option" style="display: none;">
+                <label>
+                    <input type="checkbox" id="pin-is-notice">
+                    공지사항으로 만들기 (큰 노란색 핀)
+                </label>
+            </div>
             <div class="form-group">
                 <label>이미지 (선택)</label>
                 <input type="file" id="pin-image" accept="image/*">
@@ -75,15 +80,10 @@
                     <img id="image-preview" alt="미리보기">
                 </div>
             </div>
-            <div class="form-group" id="notice-checkbox-container" style="display: none;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="is-notice">
-                    <span>🔔 공지 핀으로 생성 (관리자 전용)</span>
-                </label>
-            </div>
             <button class="btn btn-primary" id="save-pin" style="width: 100%;">저장</button>
         </div>
     </div>
+
     <!-- 핀 보기 모달 -->
     <div id="view-modal" class="modal">
         <div class="modal-content">
@@ -115,9 +115,13 @@
 
             <div style="margin-top: 20px; display: flex; gap: 10px;">
                 <button class="btn btn-danger" id="delete-pin" style="display: none;">삭제</button>
+                <button class="btn btn-danger" id="admin-delete-pin" style="display: none;">관리자 삭제</button>
             </div>
         </div>
     </div>
+
+ 
     <script type="module" src="Map.js"></script>
 </body>
 </html>
+
