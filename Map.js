@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, orderBy, updateDoc, arrayUnion, arrayRemove, getDoc, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, orderBy, updateDoc, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCthH9cf-o3i9cciD7GfZJPLUSHt-VmjC8",
@@ -16,9 +16,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 관리자 계정 목록
-const ADMIN_ACCOUNTS = ['admin', 'manager'];
-
 // 상태 변수
 let scale = 1;
 let posX = 0;
@@ -26,14 +23,12 @@ let posY = 0;
 let lastX = 0;
 let lastY = 0;
 let isDragging = false;
-let dragMoved = false; // 드래그 중 움직임 감지
 let pendingPinPosition = null;
 let currentUser = null;
 let isRegistering = false;
 let selectedPinId = null;
 let currentPinData = null;
 let viewUnsubscribe = null;
-let currentFloor = 1; // 현재 층
 
 const container = document.getElementById("map-container");
 const map = document.getElementById("map-image");
@@ -42,11 +37,6 @@ const loginModal = document.getElementById("login-modal");
 const createModal = document.getElementById("create-modal");
 const viewModal = document.getElementById("view-modal");
 const authInfo = document.getElementById("auth-info");
-
-// 관리자 확인
-function isAdmin() {
-    return currentUser && ADMIN_ACCOUNTS.includes(currentUser.username);
-}
 
 // Transform 업데이트
 function updateTransform() {
@@ -62,11 +52,6 @@ function createPinElement(pinData) {
     pin.dataset.x = pinData.x;
     pin.dataset.y = pinData.y;
 
-    // 공지 핀 스타일
-    if (pinData.isNotice) {
-        pin.classList.add("notice-pin");
-    }
-
     if (pinData.image) {
         pin.classList.add("has-image");
         const img = document.createElement("img");
@@ -74,11 +59,9 @@ function createPinElement(pinData) {
         pin.appendChild(img);
     }
 
-    // 클릭 이벤트 - stopPropagation 제거
     pin.addEventListener("click", (e) => {
-        if (!dragMoved) {
-            openViewModal(pinData);
-        }
+        e.stopPropagation();
+        openViewModal(pinData);
     });
 
     container.appendChild(pin);
@@ -86,48 +69,23 @@ function createPinElement(pinData) {
     return pin;
 }
 
-// 핀 위치 업데이트 (부드럽게)
+// 핀 위치 업데이트
 function updatePinPosition(pin) {
     const x = Number(pin.dataset.x);
     const y = Number(pin.dataset.y);
     const centerX = container.offsetWidth / 2;
     const centerY = container.offsetHeight / 2;
-    const left = centerX + posX + x * scale;
-    const top = centerY + posY + y * scale;
-    
-    // 변환 사용으로 위치 업데이트 (transition 없이)
-    pin.style.transform = `translate(${left - 15}px, ${top - 15}px)`;
+    pin.style.left = `${centerX + posX + x * scale}px`;
+    pin.style.top = `${centerY + posY + y * scale}px`;
 }
 
 function updateAllPins() {
     document.querySelectorAll(".map-pin").forEach(updatePinPosition);
 }
 
-// 층 변경
-function changeFloor(floor) {
-    currentFloor = floor;
-    map.style.backgroundImage = `url('map_floor_${floor}.png')`;
-    
-    // 층 버튼 활성화 상태 업데이트
-    document.querySelectorAll(".floor-btn").forEach(btn => {
-        btn.classList.remove("active");
-        if (parseInt(btn.dataset.floor) === floor) {
-            btn.classList.add("active");
-        }
-    });
-    
-    console.log("층 변경:", floor); // 디버깅용
-    loadPins();
-}
-
-// Firestore에서 핀 로드 (실시간, 현재 층만)
+// Firestore에서 핀 로드 (실시간)
 function loadPins() {
-    const pinsQuery = query(
-        collection(db, "pins"),
-        where("floor", "==", currentFloor),
-        orderBy("createdAt", "desc")
-    );
-    
+    const pinsQuery = query(collection(db, "pins"), orderBy("createdAt", "desc"));
     onSnapshot(pinsQuery, (snapshot) => {
         document.querySelectorAll(".map-pin").forEach(p => p.remove());
         
@@ -139,7 +97,7 @@ function loadPins() {
 }
 
 // 핀 저장
-async function savePin(x, y, title, content, image, isNotice = false) {
+async function savePin(x, y, title, content, image) {
     try {
         await addDoc(collection(db, "pins"), {
             x,
@@ -149,8 +107,6 @@ async function savePin(x, y, title, content, image, isNotice = false) {
             image: image || null,
             author: currentUser.username,
             authorId: currentUser.uid,
-            floor: currentFloor,
-            isNotice: isNotice,
             createdAt: new Date(),
             likes: [],
             comments: []
@@ -243,6 +199,7 @@ function renderComments(comments) {
         return;
     }
     
+    // 최신 댓글이 아래에 오도록 정렬
     const sortedComments = [...comments].sort((a, b) => 
         new Date(a.createdAt) - new Date(b.createdAt)
     );
@@ -269,6 +226,7 @@ function renderComments(comments) {
         commentsList.appendChild(commentEl);
     });
     
+    // 댓글 삭제 버튼 이벤트
     document.querySelectorAll(".comment-delete-btn").forEach(btn => {
         btn.addEventListener("click", async () => {
             if (confirm("댓글을 삭제하시겠습니까?")) {
@@ -278,7 +236,7 @@ function renderComments(comments) {
     });
 }
 
-// 시간 표시
+// 시간 표시 (몇 분 전, 몇 시간 전 등)
 function getTimeAgo(date) {
     const seconds = Math.floor((new Date() - date) / 1000);
     
@@ -365,13 +323,6 @@ onAuthStateChanged(auth, (user) => {
         loginModal.classList.remove("show");
         authInfo.style.display = "flex";
         document.getElementById("username-display").textContent = currentUser.username;
-        
-        // 관리자 배지 표시
-        if (isAdmin()) {
-            document.getElementById("username-display").innerHTML = 
-                `${currentUser.username} <span class="admin-badge">관리자</span>`;
-        }
-        
         loadPins();
     } else {
         currentUser = null;
@@ -385,32 +336,20 @@ onAuthStateChanged(auth, (user) => {
 container.addEventListener("mousedown", (e) => {
     if (e.target.closest(".map-pin")) return;
     isDragging = true;
-    dragMoved = false;
     lastX = e.clientX;
     lastY = e.clientY;
 });
 
 window.addEventListener("mousemove", (e) => {
     if (!isDragging) return;
-    const dx = e.clientX - lastX;
-    const dy = e.clientY - lastY;
-    
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-        dragMoved = true;
-    }
-    
-    posX += dx;
-    posY += dy;
+    posX += e.clientX - lastX;
+    posY += e.clientY - lastY;
     lastX = e.clientX;
     lastY = e.clientY;
     updateTransform();
 });
 
-window.addEventListener("mouseup", () => {
-    isDragging = false;
-    // 짧은 지연 후 dragMoved 초기화
-    setTimeout(() => { dragMoved = false; }, 100);
-});
+window.addEventListener("mouseup", () => isDragging = false);
 
 // 터치 이벤트
 let touchStartDist = 0;
@@ -421,7 +360,6 @@ container.addEventListener("touchstart", (e) => {
     if (e.target.closest(".map-pin")) return;
     if (e.touches.length === 1) {
         isTouching = true;
-        dragMoved = false;
         lastX = e.touches[0].clientX;
         lastY = e.touches[0].clientY;
     } else if (e.touches.length === 2) {
@@ -435,15 +373,8 @@ container.addEventListener("touchstart", (e) => {
 container.addEventListener("touchmove", (e) => {
     e.preventDefault();
     if (e.touches.length === 1 && isTouching) {
-        const dx = e.touches[0].clientX - lastX;
-        const dy = e.touches[0].clientY - lastY;
-        
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-            dragMoved = true;
-        }
-        
-        posX += dx;
-        posY += dy;
+        posX += e.touches[0].clientX - lastX;
+        posY += e.touches[0].clientY - lastY;
         lastX = e.touches[0].clientX;
         lastY = e.touches[0].clientY;
         updateTransform();
@@ -456,10 +387,7 @@ container.addEventListener("touchmove", (e) => {
     }
 }, { passive: false });
 
-container.addEventListener("touchend", () => {
-    isTouching = false;
-    setTimeout(() => { dragMoved = false; }, 100);
-});
+container.addEventListener("touchend", () => isTouching = false);
 
 // 휠 줌
 container.addEventListener("wheel", (e) => {
@@ -472,29 +400,11 @@ container.addEventListener("wheel", (e) => {
 // 더블클릭으로 핀 생성
 container.addEventListener("dblclick", (e) => {
     if (!currentUser || e.target.closest(".map-pin")) return;
-    
-    // 드래그 중이었으면 무시
-    if (dragMoved) {
-        dragMoved = false;
-        return;
-    }
-    
     const rect = container.getBoundingClientRect();
     pendingPinPosition = {
         x: (e.clientX - rect.left - rect.width / 2 - posX) / scale,
         y: (e.clientY - rect.top - rect.height / 2 - posY) / scale
     };
-    
-    // 관리자용 공지 체크박스 표시
-    const noticeCheckbox = document.getElementById("notice-checkbox-container");
-    if (noticeCheckbox) {
-        if (isAdmin()) {
-            noticeCheckbox.style.display = "block";
-        } else {
-            noticeCheckbox.style.display = "none";
-        }
-    }
-    
     createModal.classList.add("show");
 });
 
@@ -504,7 +414,6 @@ document.getElementById("close-create").onclick = () => {
     document.getElementById("pin-title").value = "";
     document.getElementById("pin-content").value = "";
     document.getElementById("pin-image").value = "";
-    document.getElementById("is-notice").checked = false;
     document.getElementById("image-preview-container").classList.remove("show");
 };
 
@@ -513,7 +422,6 @@ document.getElementById("save-pin").onclick = async () => {
     const title = document.getElementById("pin-title").value.trim();
     const content = document.getElementById("pin-content").value.trim();
     const imageFile = document.getElementById("pin-image").files[0];
-    const isNotice = document.getElementById("is-notice").checked;
 
     if (!title || !content) {
         alert("제목과 내용을 입력하세요");
@@ -526,12 +434,11 @@ document.getElementById("save-pin").onclick = async () => {
         if (imageFile) {
             imageData = await getBase64(imageFile);
         }
-        await savePin(pendingPinPosition.x, pendingPinPosition.y, title, content, imageData, isNotice);
+        await savePin(pendingPinPosition.x, pendingPinPosition.y, title, content, imageData);
         createModal.classList.remove("show");
         document.getElementById("pin-title").value = "";
         document.getElementById("pin-content").value = "";
         document.getElementById("pin-image").value = "";
-        document.getElementById("is-notice").checked = false;
         document.getElementById("image-preview-container").classList.remove("show");
     } catch (error) {
         alert(error.message || "핀 저장 실패");
@@ -563,15 +470,6 @@ function openViewModal(pinData) {
     selectedPinId = pinData.id;
     currentPinData = pinData;
     viewModal.classList.add("show");
-    
-    // 공지 핀 스타일
-    const modalContent = viewModal.querySelector(".modal-content");
-    if (pinData.isNotice) {
-        modalContent.classList.add("notice-modal");
-    } else {
-        modalContent.classList.remove("notice-modal");
-    }
-    
     document.getElementById("view-title").textContent = pinData.title;
     document.getElementById("view-author").textContent = "작성자: " + pinData.author;
     document.getElementById("view-content").textContent = pinData.content;
@@ -580,17 +478,11 @@ function openViewModal(pinData) {
     if (pinData.image) {
         viewImage.src = pinData.image;
         viewImage.classList.remove("hidden");
-        
-        // 공지 핀이면 이미지 크게 표시
-        if (pinData.isNotice) {
-            viewImage.classList.add("notice-image");
-        } else {
-            viewImage.classList.remove("notice-image");
-        }
     } else {
         viewImage.classList.add("hidden");
     }
 
+    // 좋아요 상태 업데이트
     const likes = pinData.likes || [];
     const likeBtn = document.getElementById("like-btn");
     const likeCount = document.getElementById("like-count");
@@ -604,30 +496,33 @@ function openViewModal(pinData) {
         likeBtn.querySelector(".heart").textContent = "♡";
     }
 
+    // 댓글 렌더링
     const comments = pinData.comments || [];
     document.getElementById("comment-count").textContent = comments.length;
     renderComments(comments);
     
+    // 댓글 입력창 초기화
     document.getElementById("comment-input").value = "";
 
     const deleteBtn = document.getElementById("delete-pin");
-    if (currentUser && (currentUser.uid === pinData.authorId || isAdmin())) {
+    if (currentUser && currentUser.uid === pinData.authorId) {
         deleteBtn.style.display = "block";
     } else {
         deleteBtn.style.display = "none";
     }
-    
-    if (viewUnsubscribe) {
+      if (viewUnsubscribe) {
         viewUnsubscribe();
         viewUnsubscribe = null;
     }
-    
-    const pinRef = doc(db, "pins", pinData.id);
+    // 실시간 업데이트 리스너
+   const pinRef = doc(db, "pins", pinData.id);
+    // 변수에 직접 함수를 저장합니다 (글자로 변하지 않음)
     viewUnsubscribe = onSnapshot(pinRef, (doc) => {
         if (doc.exists()) {
             const updatedData = doc.data();
             currentPinData = { id: doc.id, ...updatedData };
             
+            // 좋아요 업데이트
             const updatedLikes = updatedData.likes || [];
             likeCount.textContent = updatedLikes.length;
             if (currentUser && updatedLikes.includes(currentUser.uid)) {
@@ -638,14 +533,22 @@ function openViewModal(pinData) {
                 likeBtn.querySelector(".heart").textContent = "♡";
             }
             
+            // 댓글 업데이트
             const updatedComments = updatedData.comments || [];
             document.getElementById("comment-count").textContent = updatedComments.length;
-            renderComments(updatedData.comments || []);
+           renderComments(updatedData.comments || []);
         }
     });
+    
+ 
 }
+   
+          
+       
+    
 
-// 좋아요 버튼
+
+// 좋아요 버튼 클릭
 document.getElementById("like-btn").onclick = async () => {
     if (!currentUser) {
         alert("로그인이 필요합니다.");
@@ -654,7 +557,7 @@ document.getElementById("like-btn").onclick = async () => {
     await toggleLike(selectedPinId);
 };
 
-// 댓글 작성
+// 댓글 작성 버튼 클릭
 document.getElementById("add-comment").onclick = async () => {
     const commentInput = document.getElementById("comment-input");
     const commentText = commentInput.value.trim();
@@ -678,12 +581,13 @@ document.getElementById("comment-input").addEventListener("keypress", (e) => {
 
 document.getElementById("close-view").onclick = () => {
     if (typeof viewUnsubscribe === "function") {
-        viewUnsubscribe();
-        viewUnsubscribe = null;
+        viewUnsubscribe(); // 변수에 담긴 함수 실행
+        viewUnsubscribe = null; // 초기화
     }
     viewModal.classList.remove("show");
 };
 
+// 모달 배경 클릭 시 닫기
 viewModal.addEventListener("click", (e) => {
     if (e.target === viewModal) {
         if (typeof viewUnsubscribe === "function") {
@@ -709,22 +613,18 @@ document.getElementById("delete-pin").onclick = async () => {
     }
 };
 
+// 모달 배경 클릭시 닫기
 createModal.addEventListener("click", (e) => {
     if (e.target === createModal) {
         createModal.classList.remove("show");
     }
 });
 
-// 층 버튼 이벤트 - DOM 로드 후 실행
-window.addEventListener("DOMContentLoaded", () => {
-    console.log("층 버튼 이벤트 등록 시작"); // 디버깅용
-    document.querySelectorAll(".floor-btn").forEach(btn => {
-        console.log("버튼 찾음:", btn.dataset.floor); // 디버깅용
-        btn.addEventListener("click", (e) => {
-            e.preventDefault();
-            const floor = parseInt(btn.dataset.floor);
-            console.log("버튼 클릭됨:", floor); // 디버깅용
-            changeFloor(floor);
-        });
-    });
+viewModal.addEventListener("click", (e) => {
+    if (e.target === viewModal) {
+        if (viewModal.dataset.unsubscribe) {
+            viewModal.dataset.unsubscribe();
+        }
+        viewModal.classList.remove("show");
+    }
 });
