@@ -1,7 +1,6 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, updateDoc, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-storage.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, updateDoc, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCthH9cf-o3i9cciD7GfZJPLUSHt-VmjC8",
@@ -16,7 +15,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 // 상태 변수
 let scale = 1;
@@ -145,14 +143,9 @@ function loadPins() {
 }
 
 // 핀 저장
-async function savePin(x, y, title, content, imageFile) {
+async function savePin(x, y, title, content, imageBase64) {
     try {
         const isNotice = document.getElementById("pin-is-notice")?.checked || false;
-        
-        let imageURL = null;
-        if (imageFile) {
-            imageURL = await uploadImage(imageFile);
-        }
         
         await addDoc(collection(db, "pins"), {
             x,
@@ -160,7 +153,7 @@ async function savePin(x, y, title, content, imageFile) {
             floor: currentFloor,
             title,
             content,
-            image: imageURL,
+            image: imageBase64 || null,
             author: currentUser.username,
             authorId: currentUser.uid,
             createdAt: new Date(),
@@ -305,30 +298,13 @@ function getTimeAgo(date) {
     return date.toLocaleDateString();
 }
 
-// 이미지 업로드 (Firebase Storage)
-async function uploadImage(file) {
-    try {
-        if (file.size > 5 * 1024 * 1024) {
-            throw new Error("이미지 크기는 5MB를 초과할 수 없습니다.");
-        }
-        
-        const timestamp = Date.now();
-        const fileName = `pins/${timestamp}_${file.name}`;
-        const storageRef = ref(storage, fileName);
-        
-        await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(storageRef);
-        
-        return downloadURL;
-    } catch (error) {
-        console.error("이미지 업로드 실패:", error);
-        throw error;
-    }
-}
-
-// 이미지 미리보기용 Base64 변환
+// 이미지 Base64 변환
 function getBase64(file) {
     return new Promise((resolve, reject) => {
+        if (file.size > 1 * 1024 * 1024) {
+            reject(new Error("이미지 크기는 1MB를 초과할 수 없습니다."));
+            return;
+        }
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => resolve(reader.result);
@@ -610,7 +586,11 @@ document.getElementById("save-pin").onclick = async () => {
 
     try {
         loading.classList.remove("hidden");
-        await savePin(pendingPinPosition.x, pendingPinPosition.y, title, content, imageFile);
+        let imageBase64 = null;
+        if (imageFile) {
+            imageBase64 = await getBase64(imageFile);
+        }
+        await savePin(pendingPinPosition.x, pendingPinPosition.y, title, content, imageBase64);
         createModal.classList.remove("show");
         document.getElementById("pin-title").value = "";
         document.getElementById("pin-content").value = "";
