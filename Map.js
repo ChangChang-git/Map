@@ -32,6 +32,10 @@ let viewUnsubscribe = null;
 let currentFloor = 1;
 const ADMIN_USERNAME = "admin";
 
+// 터치 이벤트 변수
+let touchStartDist = 0;
+let touchStartScale = 1;
+let isTouching = false;
 
 const container = document.getElementById("map-container");
 const map = document.getElementById("map-image");
@@ -40,35 +44,6 @@ const loginModal = document.getElementById("login-modal");
 const createModal = document.getElementById("create-modal");
 const viewModal = document.getElementById("view-modal");
 const authInfo = document.getElementById("auth-info");
-const floorSelector = document.getElementById("floor-selector");
-
-// 층별 지도 이미지 변경
-function changeFloor(floor) {
-    currentFloor = floor;
-    map.style.backgroundImage = `url('map_floor_${floor}.png')`;
-    
-    document.querySelectorAll(".floor-btn").forEach(btn => {
-        if (parseInt(btn.dataset.floor) === floor) {
-            btn.classList.add("active");
-        } else {
-            btn.classList.remove("active");
-        }
-    });
-    
-    updatePinsVisibility();
-}
-
-// 핀 표시/숨김 업데이트
-function updatePinsVisibility() {
-    document.querySelectorAll(".map-pin").forEach(pin => {
-        const pinFloor = parseInt(pin.dataset.floor);
-        if (pinFloor === currentFloor) {
-            pin.style.display = "block";
-        } else {
-            pin.style.display = "none";
-        }
-    });
-}
 const floorSelector = document.getElementById("floor-selector");
 
 // 층별 지도 이미지 변경
@@ -313,34 +288,36 @@ function renderComments(comments) {
 function getTimeAgo(date) {
     const seconds = Math.floor((new Date() - date) / 1000);
     
-    const intervals = {
-        년: 31536000,
-        개월: 2592000,
-        주: 604800,
-        일: 86400,
-        시간: 3600,
-        분: 60
-    };
-    
-    for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-        const interval = Math.floor(seconds / secondsInUnit);
-        if (interval >= 1) {
-            return `${interval}${unit} 전`;
-        }
-    }
-    
-    return '방금 전';
+    if (seconds < 60) return "방금 전";
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}분 전`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}시간 전`;
+    if (seconds < 2592000) return `${Math.floor(seconds / 86400)}일 전`;
+    return date.toLocaleDateString();
 }
 
-// 핀 보기 모달 열기
+// 이미지 Base64 변환
+function getBase64(file) {
+    return new Promise((resolve, reject) => {
+        if (file.size > 4 * 1024 * 1024) {
+            reject(new Error("이미지 크기는 4MB를 초과할 수 없습니다."));
+            return;
+        }
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+}
+
+// 핀 보기 모달
 function openViewModal(pinData) {
     selectedPinId = pinData.id;
     currentPinData = pinData;
-    
+    viewModal.classList.add("show");
     document.getElementById("view-title").textContent = pinData.title;
-    document.getElementById("view-author").textContent = `작성자: ${pinData.author}`;
+    document.getElementById("view-author").textContent = "작성자: " + pinData.author;
     document.getElementById("view-content").textContent = pinData.content;
-    
+
     const viewImage = document.getElementById("view-image");
     if (pinData.image) {
         viewImage.src = pinData.image;
@@ -348,84 +325,142 @@ function openViewModal(pinData) {
     } else {
         viewImage.classList.add("hidden");
     }
-    
+
+    // 공지사항 스타일 적용
     const modalContent = viewModal.querySelector(".modal-content");
     if (pinData.isNotice) {
         modalContent.classList.add("notice-modal");
     } else {
         modalContent.classList.remove("notice-modal");
     }
+
+    // 좋아요 상태 업데이트
+    const likes = pinData.likes || [];
+    const likeBtn = document.getElementById("like-btn");
+    const likeCount = document.getElementById("like-count");
     
+    likeCount.textContent = likes.length;
+    if (currentUser && likes.includes(currentUser.uid)) {
+        likeBtn.classList.add("liked");
+        likeBtn.querySelector(".heart").textContent = "♥";
+    } else {
+        likeBtn.classList.remove("liked");
+        likeBtn.querySelector(".heart").textContent = "♡";
+    }
+
+    // 댓글 렌더링
+    const comments = pinData.comments || [];
+    document.getElementById("comment-count").textContent = comments.length;
+    renderComments(comments);
+    
+    // 댓글 입력창 초기화
+    document.getElementById("comment-input").value = "";
+
+    // 삭제 버튼 표시 (작성자 또는 관리자)
     const deleteBtn = document.getElementById("delete-pin");
     const adminDeleteBtn = document.getElementById("admin-delete-pin");
     
     if (currentUser && currentUser.uid === pinData.authorId) {
-        deleteBtn.style.display = "inline-block";
+        deleteBtn.style.display = "block";
         adminDeleteBtn.style.display = "none";
     } else if (currentUser && currentUser.username === ADMIN_USERNAME) {
         deleteBtn.style.display = "none";
-        adminDeleteBtn.style.display = "inline-block";
+        adminDeleteBtn.style.display = "block";
     } else {
         deleteBtn.style.display = "none";
         adminDeleteBtn.style.display = "none";
     }
     
-    updateLikeButton(pinData.likes || []);
-    renderComments(pinData.comments || []);
-    
     if (viewUnsubscribe) {
         viewUnsubscribe();
+        viewUnsubscribe = null;
     }
     
+    // 실시간 업데이트 리스너
     const pinRef = doc(db, "pins", pinData.id);
-    viewUnsubscribe = onSnapshot(pinRef, (docSnapshot) => {
-        if (docSnapshot.exists()) {
-            const updatedData = docSnapshot.data();
-            currentPinData = { id: docSnapshot.id, ...updatedData };
-            updateLikeButton(updatedData.likes || []);
+    viewUnsubscribe = onSnapshot(pinRef, (doc) => {
+        if (doc.exists()) {
+            const updatedData = doc.data();
+            currentPinData = { id: doc.id, ...updatedData };
+            
+            // 좋아요 업데이트
+            const updatedLikes = updatedData.likes || [];
+            likeCount.textContent = updatedLikes.length;
+            if (currentUser && updatedLikes.includes(currentUser.uid)) {
+                likeBtn.classList.add("liked");
+                likeBtn.querySelector(".heart").textContent = "♥";
+            } else {
+                likeBtn.classList.remove("liked");
+                likeBtn.querySelector(".heart").textContent = "♡";
+            }
+            
+            // 댓글 업데이트
+            const updatedComments = updatedData.comments || [];
+            document.getElementById("comment-count").textContent = updatedComments.length;
             renderComments(updatedData.comments || []);
         }
     });
-    
-    viewModal.classList.add("show");
 }
 
-// 좋아요 버튼 업데이트
-function updateLikeButton(likes) {
-    const likeBtn = document.getElementById("like-btn");
-    const likeCount = document.getElementById("like-count");
-    const heart = likeBtn.querySelector(".heart");
-    
-    likeCount.textContent = likes.length;
-    
-    if (currentUser && likes.includes(currentUser.uid)) {
-        likeBtn.classList.add("liked");
-        heart.textContent = "♥";
-    } else {
-        likeBtn.classList.remove("liked");
-        heart.textContent = "♡";
+// 로그인/회원가입
+document.getElementById("auth-submit").onclick = async () => {
+    const username = document.getElementById("login-username").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+
+    if (!username || !password) {
+        alert("아이디와 비밀번호를 입력하세요");
+        return;
     }
-}
 
-// 이미지를 Base64로 변환
-function convertImageToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}
+    const email = username + "@mappin.app";
 
-// 인증 상태 감지
+    try {
+        loading.classList.remove("hidden");
+        if (isRegistering) {
+            await createUserWithEmailAndPassword(auth, email, password);
+            alert("회원가입 완료!");
+        } else {
+            await signInWithEmailAndPassword(auth, email, password);
+        }
+    } catch (error) {
+        console.error("인증 오류:", error);
+        if (error.code === "auth/email-already-in-use") {
+            alert("이미 존재하는 아이디입니다.");
+        } else if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
+            alert("아이디 또는 비밀번호가 잘못되었습니다.");
+        } else if (error.code === "auth/weak-password") {
+            alert("비밀번호는 6자 이상이어야 합니다.");
+        } else {
+            alert("인증 실패: " + error.message);
+        }
+    } finally {
+        loading.classList.add("hidden");
+    }
+};
+
+// 로그인/회원가입 토글
+document.getElementById("auth-toggle").onclick = () => {
+    isRegistering = !isRegistering;
+    document.getElementById("auth-title").textContent = isRegistering ? "회원가입" : "로그인";
+    document.getElementById("auth-submit").textContent = isRegistering ? "회원가입" : "로그인";
+    document.getElementById("auth-toggle").textContent = isRegistering ? "이미 계정이 있으신가요? 로그인" : "계정이 없으신가요? 회원가입";
+};
+
+// 로그아웃
+document.getElementById("logout-btn").onclick = async () => {
+    if (confirm("로그아웃 하시겠습니까?")) {
+        await signOut(auth);
+    }
+};
+
+// 인증 상태 관찰
 onAuthStateChanged(auth, (user) => {
+    loading.classList.add("hidden");
     if (user) {
         currentUser = {
             uid: user.uid,
-            email: user.email,
-            username: user.email.split('@')[0]
+            username: user.email.split("@")[0]
         };
-        
         loginModal.classList.remove("show");
         authInfo.style.display = "flex";
         floorSelector.style.display = "flex";
@@ -433,156 +468,98 @@ onAuthStateChanged(auth, (user) => {
         const usernameDisplay = document.getElementById("username-display");
         usernameDisplay.textContent = currentUser.username;
         
+        // 관리자 배지 추가
         if (currentUser.username === ADMIN_USERNAME) {
             usernameDisplay.innerHTML = currentUser.username + '<span class="admin-badge">관리자</span>';
             document.getElementById("admin-notice-option").style.display = "block";
+        } else {
+            document.getElementById("admin-notice-option").style.display = "none";
         }
         
         loadPins();
-        loading.classList.add("hidden");
     } else {
         currentUser = null;
-        loading.classList.add("hidden");
         loginModal.classList.add("show");
         authInfo.style.display = "none";
         floorSelector.style.display = "none";
+        document.querySelectorAll(".map-pin").forEach(p => p.remove());
     }
 });
 
-// 로그인/회원가입
-document.getElementById("auth-submit").addEventListener("click", async () => {
-    const username = document.getElementById("login-username").value.trim();
-    const password = document.getElementById("login-password").value.trim();
-    
-    if (!username || !password) {
-        alert("아이디와 비밀번호를 입력하세요.");
-        return;
-    }
-    
-    const email = `${username}@mappin.com`;
-    
-    try {
-        if (isRegistering) {
-            await createUserWithEmailAndPassword(auth, email, password);
-            alert("회원가입 성공!");
-        } else {
-            await signInWithEmailAndPassword(auth, email, password);
-        }
-    } catch (error) {
-        if (error.code === "auth/email-already-in-use") {
-            alert("이미 사용 중인 아이디입니다.");
-        } else if (error.code === "auth/invalid-credential") {
-            alert("아이디 또는 비밀번호가 올바르지 않습니다.");
-        } else if (error.code === "auth/weak-password") {
-            alert("비밀번호는 6자 이상이어야 합니다.");
-        } else {
-            alert("오류가 발생했습니다: " + error.message);
-        }
-    }
-});
-
-// 로그인/회원가입 토글
-document.getElementById("auth-toggle").addEventListener("click", () => {
-    isRegistering = !isRegistering;
-    const title = document.getElementById("auth-title");
-    const submitBtn = document.getElementById("auth-submit");
-    const toggle = document.getElementById("auth-toggle");
-    
-    if (isRegistering) {
-        title.textContent = "회원가입";
-        submitBtn.textContent = "회원가입";
-        toggle.textContent = "이미 계정이 있으신가요? 로그인";
-    } else {
-        title.textContent = "로그인";
-        submitBtn.textContent = "로그인";
-        toggle.textContent = "계정이 없으신가요? 회원가입";
-    }
-});
-
-// 로그아웃
-document.getElementById("logout-btn").addEventListener("click", () => {
-    signOut(auth);
-});
-
-// 지도 드래그
+// 드래그 이벤트
 container.addEventListener("mousedown", (e) => {
-    if (e.target === container || e.target === map) {
-        isDragging = true;
-        lastX = e.clientX;
-        lastY = e.clientY;
-    }
+    if (e.target.closest(".map-pin")) return;
+    isDragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
 });
 
-container.addEventListener("mousemove", (e) => {
-    if (isDragging) {
-        const dx = e.clientX - lastX;
-        const dy = e.clientY - lastY;
-        posX += dx;
-        posY += dy;
-        lastX = e.clientX;
-        lastY = e.clientY;
-        updateTransform();
-    }
-});
-
-container.addEventListener("mouseup", () => {
-    isDragging = false;
-});
-
-container.addEventListener("mouseleave", () => {
-    isDragging = false;
-});
-
-// 줌
-container.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    scale = Math.max(0.5, Math.min(3, scale * delta));
+window.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    posX += e.clientX - lastX;
+    posY += e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
     updateTransform();
 });
 
+window.addEventListener("mouseup", () => isDragging = false);
+
+// 터치 이벤트
+container.addEventListener("touchstart", (e) => {
+    if (e.target.closest(".map-pin")) return;
+    if (e.touches.length === 1) {
+        isTouching = true;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        touchStartDist = Math.sqrt(dx * dx + dy * dy);
+        touchStartScale = scale;
+    }
+});
+
+container.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1 && isTouching) {
+        posX += e.touches[0].clientX - lastX;
+        posY += e.touches[0].clientY - lastY;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+        updateTransform();
+    } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        scale = Math.min(Math.max(touchStartScale * (dist / touchStartDist), 0.3), 5);
+        updateTransform();
+    }
+}, { passive: false });
+
+container.addEventListener("touchend", () => isTouching = false);
+
+// 휠 줌
+container.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    scale = Math.min(Math.max(scale * delta, 0.3), 5);
+    updateTransform();
+}, { passive: false });
+
 // 더블클릭으로 핀 생성
 container.addEventListener("dblclick", (e) => {
-    if (!currentUser) {
-        alert("로그인이 필요합니다.");
-        return;
-    }
-    
-    if (e.target !== container && e.target !== map) return;
-    
-    const centerX = container.offsetWidth / 2;
-    const centerY = container.offsetHeight / 2;
-    const x = (e.clientX - centerX - posX) / scale;
-    const y = (e.clientY - centerY - posY) / scale;
-    
-    pendingPinPosition = { x, y };
+    if (!currentUser || e.target.closest(".map-pin")) return;
+    const rect = container.getBoundingClientRect();
+    pendingPinPosition = {
+        x: (e.clientX - rect.left - rect.width / 2 - posX) / scale,
+        y: (e.clientY - rect.top - rect.height / 2 - posY) / scale
+    };
     createModal.classList.add("show");
 });
 
 // 핀 생성 모달 닫기
-document.getElementById("close-create").addEventListener("click", () => {
-    createModal.classList.remove("show");
-    pendingPinPosition = null;
-});
-
-// 핀 저장
-document.getElementById("save-pin").addEventListener("click", async () => {
-    const title = document.getElementById("pin-title").value.trim();
-    const content = document.getElementById("pin-content").value.trim();
-    const imageFile = document.getElementById("pin-image").files[0];
-    
-    if (!title || !content) {
-        alert("제목과 내용을 입력하세요.");
-        return;
-    }
-    
-    let imageBase64 = null;
-    if (imageFile) {
-        imageBase64 = await convertImageToBase64(imageFile);
-    }
-    
-    await savePin(pendingPinPosition.x, pendingPinPosition.y, title, content, imageBase64);
-    
+document.getElementById("close-create").onclick = () => {
     createModal.classList.remove("show");
     document.getElementById("pin-title").value = "";
     document.getElementById("pin-content").value = "";
@@ -591,69 +568,152 @@ document.getElementById("save-pin").addEventListener("click", async () => {
     if (document.getElementById("pin-is-notice")) {
         document.getElementById("pin-is-notice").checked = false;
     }
-    pendingPinPosition = null;
-});
+};
+
+// 핀 저장
+document.getElementById("save-pin").onclick = async () => {
+    const title = document.getElementById("pin-title").value.trim();
+    const content = document.getElementById("pin-content").value.trim();
+    const imageFile = document.getElementById("pin-image").files[0];
+
+    if (!title || !content) {
+        alert("제목과 내용을 입력하세요");
+        return;
+    }
+
+    try {
+        loading.classList.remove("hidden");
+        let imageData = null;
+        if (imageFile) {
+            imageData = await getBase64(imageFile);
+        }
+        await savePin(pendingPinPosition.x, pendingPinPosition.y, title, content, imageData);
+        createModal.classList.remove("show");
+        document.getElementById("pin-title").value = "";
+        document.getElementById("pin-content").value = "";
+        document.getElementById("pin-image").value = "";
+        document.getElementById("image-preview-container").classList.remove("show");
+        if (document.getElementById("pin-is-notice")) {
+            document.getElementById("pin-is-notice").checked = false;
+        }
+    } catch (error) {
+        alert(error.message || "핀 저장 실패");
+    } finally {
+        loading.classList.add("hidden");
+    }
+};
 
 // 이미지 미리보기
 document.getElementById("pin-image").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (file) {
-        const base64 = await convertImageToBase64(file);
-        document.getElementById("image-preview").src = base64;
-        document.getElementById("image-preview-container").classList.add("show");
+        try {
+            const base64 = await getBase64(file);
+            document.getElementById("image-preview").src = base64;
+            document.getElementById("image-preview-container").classList.add("show");
+        } catch (error) {
+            alert(error.message);
+            e.target.value = "";
+            document.getElementById("image-preview-container").classList.remove("show");
+        }
+    } else {
+        document.getElementById("image-preview-container").classList.remove("show");
     }
 });
 
-// 핀 보기 모달 닫기
-document.getElementById("close-view").addEventListener("click", () => {
-    viewModal.classList.remove("show");
-    if (viewUnsubscribe) {
-        viewUnsubscribe();
-        viewUnsubscribe = null;
-    }
-});
-
-// 핀 삭제
-document.getElementById("delete-pin").addEventListener("click", async () => {
-    if (confirm("정말 삭제하시겠습니까?")) {
-        await deletePin(selectedPinId);
-        viewModal.classList.remove("show");
-    }
-});
-
-document.getElementById("admin-delete-pin").addEventListener("click", async () => {
-    if (confirm("관리자 권한으로 이 핀을 삭제하시겠습니까?")) {
-        await deletePin(selectedPinId);
-        viewModal.classList.remove("show");
-    }
-});
-
-// 좋아요
-document.getElementById("like-btn").addEventListener("click", () => {
+// 좋아요 버튼 클릭
+document.getElementById("like-btn").onclick = async () => {
     if (!currentUser) {
         alert("로그인이 필요합니다.");
         return;
     }
-    toggleLike(selectedPinId);
-});
+    await toggleLike(selectedPinId);
+};
 
-// 댓글 작성
-document.getElementById("add-comment").addEventListener("click", async () => {
-    const commentText = document.getElementById("comment-input").value.trim();
+// 댓글 작성 버튼 클릭
+document.getElementById("add-comment").onclick = async () => {
+    const commentInput = document.getElementById("comment-input");
+    const commentText = commentInput.value.trim();
+    
     if (!commentText) {
         alert("댓글 내용을 입력하세요.");
         return;
     }
     
     await addComment(selectedPinId, commentText);
-    document.getElementById("comment-input").value = "";
+    commentInput.value = "";
+};
+
+// 엔터키로 댓글 작성
+document.getElementById("comment-input").addEventListener("keypress", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById("add-comment").click();
+    }
 });
 
-// 층 선택
+// 핀 보기 모달 닫기
+document.getElementById("close-view").onclick = () => {
+    if (typeof viewUnsubscribe === "function") {
+        viewUnsubscribe();
+        viewUnsubscribe = null;
+    }
+    viewModal.classList.remove("show");
+};
+
+// 핀 삭제
+document.getElementById("delete-pin").onclick = async () => {
+    if (confirm("이 핀을 삭제하시겠습니까?")) {
+        loading.classList.remove("hidden");
+        
+        if (typeof viewUnsubscribe === "function") {
+            viewUnsubscribe();
+            viewUnsubscribe = null;
+        }
+        
+        await deletePin(selectedPinId);
+        viewModal.classList.remove("show");
+        loading.classList.add("hidden");
+    }
+};
+
+// 관리자 삭제 버튼
+document.getElementById("admin-delete-pin").onclick = async () => {
+    if (confirm("관리자 권한으로 이 핀을 삭제하시겠습니까?")) {
+        loading.classList.remove("hidden");
+        
+        if (typeof viewUnsubscribe === "function") {
+            viewUnsubscribe();
+            viewUnsubscribe = null;
+        }
+        
+        await deletePin(selectedPinId);
+        viewModal.classList.remove("show");
+        loading.classList.add("hidden");
+    }
+};
+
+// 모달 배경 클릭시 닫기
+createModal.addEventListener("click", (e) => {
+    if (e.target === createModal) {
+        createModal.classList.remove("show");
+    }
+});
+
+viewModal.addEventListener("click", (e) => {
+    if (e.target === viewModal) {
+        if (typeof viewUnsubscribe === "function") {
+            viewUnsubscribe();
+            viewUnsubscribe = null;
+        }
+        viewModal.classList.remove("show");
+    }
+});
+
+// 층 선택 버튼
 document.querySelectorAll(".floor-btn").forEach(btn => {
     btn.addEventListener("click", () => {
         const floor = parseInt(btn.dataset.floor);
         changeFloor(floor);
     });
 });
-
