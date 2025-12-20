@@ -143,7 +143,7 @@ function loadPins() {
 }
 
 // 핀 저장
-async function savePin(x, y, title, content, imageBase64) {
+async function savePin(x, y, title, content, image) {
     try {
         const isNotice = document.getElementById("pin-is-notice")?.checked || false;
         
@@ -153,7 +153,7 @@ async function savePin(x, y, title, content, imageBase64) {
             floor: currentFloor,
             title,
             content,
-            image: imageBase64 || null,
+            image: image || null,
             author: currentUser.username,
             authorId: currentUser.uid,
             createdAt: new Date(),
@@ -163,7 +163,7 @@ async function savePin(x, y, title, content, imageBase64) {
         });
     } catch (error) {
         console.error("핀 저장 실패:", error);
-        throw error;
+        alert("핀 저장에 실패했습니다.");
     }
 }
 
@@ -259,16 +259,13 @@ function renderComments(comments) {
         
         const timeAgo = getTimeAgo(new Date(comment.createdAt));
         
-        // 작성자 본인이거나 관리자일 때 삭제 버튼 표시
-        const canDelete = currentUser && (currentUser.uid === comment.authorId || currentUser.username === ADMIN_USERNAME);
-        
         commentEl.innerHTML = `
             <div class="comment-header">
                 <span class="comment-author">${comment.author}</span>
                 <span class="comment-time">${timeAgo}</span>
             </div>
             <div class="comment-text">${comment.text}</div>
-            ${canDelete ? 
+            ${currentUser && currentUser.uid === comment.authorId ? 
                 `<div class="comment-actions">
                     <button class="comment-delete-btn" data-comment-id="${comment.id}">삭제</button>
                 </div>` : ''
@@ -301,8 +298,8 @@ function getTimeAgo(date) {
 // 이미지 Base64 변환
 function getBase64(file) {
     return new Promise((resolve, reject) => {
-        if (file.size > 1 * 1024 * 1024) {
-            reject(new Error("이미지 크기는 1MB를 초과할 수 없습니다."));
+        if (file.size > 4 * 1024 * 1024) {
+            reject(new Error("이미지 크기는 4MB를 초과할 수 없습니다."));
             return;
         }
         const reader = new FileReader();
@@ -586,11 +583,11 @@ document.getElementById("save-pin").onclick = async () => {
 
     try {
         loading.classList.remove("hidden");
-        let imageBase64 = null;
+        let imageData = null;
         if (imageFile) {
-            imageBase64 = await getBase64(imageFile);
+            imageData = await getBase64(imageFile);
         }
-        await savePin(pendingPinPosition.x, pendingPinPosition.y, title, content, imageBase64);
+        await savePin(pendingPinPosition.x, pendingPinPosition.y, title, content, imageData);
         createModal.classList.remove("show");
         document.getElementById("pin-title").value = "";
         document.getElementById("pin-content").value = "";
