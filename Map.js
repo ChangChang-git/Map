@@ -486,10 +486,12 @@ container.addEventListener("dblclick", (e) => {
     
     // 관리자용 공지 체크박스 표시
     const noticeCheckbox = document.getElementById("notice-checkbox-container");
-    if (isAdmin()) {
-        noticeCheckbox.style.display = "block";
-    } else {
-        noticeCheckbox.style.display = "none";
+    if (noticeCheckbox) {
+        if (isAdmin()) {
+            noticeCheckbox.style.display = "block";
+        } else {
+            noticeCheckbox.style.display = "none";
+        }
     }
     
     createModal.classList.add("show");
