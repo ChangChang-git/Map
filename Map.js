@@ -302,4 +302,327 @@ function getTimeAgo(date) {
     return '방금 전';
 }
 
+// 핀 보기 모달 열기
+function openViewModal(pinData) {
+    selectedPinId = pinData.id;
+    currentPinData = pinData;
+    
+    document.getElementById("view-title").textContent = pinData.title;
+    document.getElementById("view-author").textContent = `작성자: ${pinData.author}`;
+    document.getElementById("view-content").textContent = pinData.content;
+    
+    const viewImage = document.getElementById("view-image");
+    if (pinData.image) {
+        viewImage.src = pinData.image;
+        viewImage.classList.remove("hidden");
+    } else {
+        viewImage.classList.add("hidden");
+    }
+    
+    const modalContent = viewModal.querySelector(".modal-content");
+    if (pinData.isNotice) {
+        modalContent.classList.add("notice-modal");
+    } else {
+        modalContent.classList.remove("notice-modal");
+    }
+    
+    const deleteBtn = document.getElementById("delete-pin");
+    const adminDeleteBtn = document.getElementById("admin-delete-pin");
+    
+    if (currentUser && currentUser.uid === pinData.authorId) {
+        deleteBtn.style.display = "inline-block";
+        adminDeleteBtn.style.display = "none";
+    } else if (currentUser && currentUser.username === ADMIN_USERNAME) {
+        deleteBtn.style.display = "none";
+        adminDeleteBtn.style.display = "inline-block";
+    } else {
+        deleteBtn.style.display = "none";
+        adminDeleteBtn.style.display = "none";
+    }
+    
+    updateLikeButton(pinData.likes || []);
+    renderComments(pinData.comments || []);
+    
+    if (viewUnsubscribe) {
+        viewUnsubscribe();
+    }
+    
+    const pinRef = doc(db, "pins", pinData.id);
+    viewUnsubscribe = onSnapshot(pinRef, (docSnapshot) => {
+        if (docSnapshot.exists()) {
+            const updatedData = docSnapshot.data();
+            currentPinData = { id: docSnapshot.id, ...updatedData };
+            updateLikeButton(updatedData.likes || []);
+            renderComments(updatedData.comments || []);
+        }
+    });
+    
+    viewModal.classList.add("show");
+}
 
+// 좋아요 버튼 업데이트
+function updateLikeButton(likes) {
+    const likeBtn = document.getElementById("like-btn");
+    const likeCount = document.getElementById("like-count");
+    const heart = likeBtn.querySelector(".heart");
+    
+    likeCount.textContent = likes.length;
+    
+    if (currentUser && likes.includes(currentUser.uid)) {
+        likeBtn.classList.add("liked");
+        heart.textContent = "♥";
+    } else {
+        likeBtn.classList.remove("liked");
+        heart.textContent = "♡";
+    }
+}
+
+// 이미지를 Base64로 변환
+function convertImageToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// 인증 상태 감지
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        currentUser = {
+            uid: user.uid,
+            email: user.email,
+            username: user.email.split('@')[0]
+        };
+        
+        loginModal.classList.remove("show");
+        authInfo.style.display = "flex";
+        floorSelector.style.display = "flex";
+        
+        const usernameDisplay = document.getElementById("username-display");
+        usernameDisplay.textContent = currentUser.username;
+        
+        if (currentUser.username === ADMIN_USERNAME) {
+            usernameDisplay.innerHTML = currentUser.username + '<span class="admin-badge">관리자</span>';
+            document.getElementById("admin-notice-option").style.display = "block";
+        }
+        
+        loadPins();
+        loading.classList.add("hidden");
+    } else {
+        currentUser = null;
+        loading.classList.add("hidden");
+        loginModal.classList.add("show");
+        authInfo.style.display = "none";
+        floorSelector.style.display = "none";
+    }
+});
+
+// 로그인/회원가입
+document.getElementById("auth-submit").addEventListener("click", async () => {
+    const username = document.getElementById("login-username").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+    
+    if (!username || !password) {
+        alert("아이디와 비밀번호를 입력하세요.");
+        return;
+    }
+    
+    const email = `${username}@mappin.com`;
+    
+    try {
+        if (isRegistering) {
+            await createUserWithEmailAndPassword(auth, email, password);
+            alert("회원가입 성공!");
+        } else {
+            await signInWithEmailAndPassword(auth, email, password);
+        }
+    } catch (error) {
+        if (error.code === "auth/email-already-in-use") {
+            alert("이미 사용 중인 아이디입니다.");
+        } else if (error.code === "auth/invalid-credential") {
+            alert("아이디 또는 비밀번호가 올바르지 않습니다.");
+        } else if (error.code === "auth/weak-password") {
+            alert("비밀번호는 6자 이상이어야 합니다.");
+        } else {
+            alert("오류가 발생했습니다: " + error.message);
+        }
+    }
+});
+
+// 로그인/회원가입 토글
+document.getElementById("auth-toggle").addEventListener("click", () => {
+    isRegistering = !isRegistering;
+    const title = document.getElementById("auth-title");
+    const submitBtn = document.getElementById("auth-submit");
+    const toggle = document.getElementById("auth-toggle");
+    
+    if (isRegistering) {
+        title.textContent = "회원가입";
+        submitBtn.textContent = "회원가입";
+        toggle.textContent = "이미 계정이 있으신가요? 로그인";
+    } else {
+        title.textContent = "로그인";
+        submitBtn.textContent = "로그인";
+        toggle.textContent = "계정이 없으신가요? 회원가입";
+    }
+});
+
+// 로그아웃
+document.getElementById("logout-btn").addEventListener("click", () => {
+    signOut(auth);
+});
+
+// 지도 드래그
+container.addEventListener("mousedown", (e) => {
+    if (e.target === container || e.target === map) {
+        isDragging = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+    }
+});
+
+container.addEventListener("mousemove", (e) => {
+    if (isDragging) {
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        posX += dx;
+        posY += dy;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        updateTransform();
+    }
+});
+
+container.addEventListener("mouseup", () => {
+    isDragging = false;
+});
+
+container.addEventListener("mouseleave", () => {
+    isDragging = false;
+});
+
+// 줌
+container.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    scale = Math.max(0.5, Math.min(3, scale * delta));
+    updateTransform();
+});
+
+// 더블클릭으로 핀 생성
+container.addEventListener("dblclick", (e) => {
+    if (!currentUser) {
+        alert("로그인이 필요합니다.");
+        return;
+    }
+    
+    if (e.target !== container && e.target !== map) return;
+    
+    const centerX = container.offsetWidth / 2;
+    const centerY = container.offsetHeight / 2;
+    const x = (e.clientX - centerX - posX) / scale;
+    const y = (e.clientY - centerY - posY) / scale;
+    
+    pendingPinPosition = { x, y };
+    createModal.classList.add("show");
+});
+
+// 핀 생성 모달 닫기
+document.getElementById("close-create").addEventListener("click", () => {
+    createModal.classList.remove("show");
+    pendingPinPosition = null;
+});
+
+// 핀 저장
+document.getElementById("save-pin").addEventListener("click", async () => {
+    const title = document.getElementById("pin-title").value.trim();
+    const content = document.getElementById("pin-content").value.trim();
+    const imageFile = document.getElementById("pin-image").files[0];
+    
+    if (!title || !content) {
+        alert("제목과 내용을 입력하세요.");
+        return;
+    }
+    
+    let imageBase64 = null;
+    if (imageFile) {
+        imageBase64 = await convertImageToBase64(imageFile);
+    }
+    
+    await savePin(pendingPinPosition.x, pendingPinPosition.y, title, content, imageBase64);
+    
+    createModal.classList.remove("show");
+    document.getElementById("pin-title").value = "";
+    document.getElementById("pin-content").value = "";
+    document.getElementById("pin-image").value = "";
+    document.getElementById("image-preview-container").classList.remove("show");
+    if (document.getElementById("pin-is-notice")) {
+        document.getElementById("pin-is-notice").checked = false;
+    }
+    pendingPinPosition = null;
+});
+
+// 이미지 미리보기
+document.getElementById("pin-image").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const base64 = await convertImageToBase64(file);
+        document.getElementById("image-preview").src = base64;
+        document.getElementById("image-preview-container").classList.add("show");
+    }
+});
+
+// 핀 보기 모달 닫기
+document.getElementById("close-view").addEventListener("click", () => {
+    viewModal.classList.remove("show");
+    if (viewUnsubscribe) {
+        viewUnsubscribe();
+        viewUnsubscribe = null;
+    }
+});
+
+// 핀 삭제
+document.getElementById("delete-pin").addEventListener("click", async () => {
+    if (confirm("정말 삭제하시겠습니까?")) {
+        await deletePin(selectedPinId);
+        viewModal.classList.remove("show");
+    }
+});
+
+document.getElementById("admin-delete-pin").addEventListener("click", async () => {
+    if (confirm("관리자 권한으로 이 핀을 삭제하시겠습니까?")) {
+        await deletePin(selectedPinId);
+        viewModal.classList.remove("show");
+    }
+});
+
+// 좋아요
+document.getElementById("like-btn").addEventListener("click", () => {
+    if (!currentUser) {
+        alert("로그인이 필요합니다.");
+        return;
+    }
+    toggleLike(selectedPinId);
+});
+
+// 댓글 작성
+document.getElementById("add-comment").addEventListener("click", async () => {
+    const commentText = document.getElementById("comment-input").value.trim();
+    if (!commentText) {
+        alert("댓글 내용을 입력하세요.");
+        return;
+    }
+    
+    await addComment(selectedPinId, commentText);
+    document.getElementById("comment-input").value = "";
+});
+
+// 층 선택
+document.querySelectorAll(".floor-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const floor = parseInt(btn.dataset.floor);
+        changeFloor(floor);
+    });
+});
