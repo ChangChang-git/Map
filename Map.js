@@ -74,9 +74,9 @@ function createPinElement(pinData) {
         pin.appendChild(img);
     }
 
+    // 클릭 이벤트 - stopPropagation 제거
     pin.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (!dragMoved) { // 드래그 중이 아닐 때만 모달 열기
+        if (!dragMoved) {
             openViewModal(pinData);
         }
     });
@@ -116,6 +116,7 @@ function changeFloor(floor) {
         }
     });
     
+    console.log("층 변경:", floor); // 디버깅용
     loadPins();
 }
 
@@ -714,10 +715,16 @@ createModal.addEventListener("click", (e) => {
     }
 });
 
-// 층 버튼 이벤트
-document.querySelectorAll(".floor-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-        const floor = parseInt(btn.dataset.floor);
-        changeFloor(floor);
+// 층 버튼 이벤트 - DOM 로드 후 실행
+window.addEventListener("DOMContentLoaded", () => {
+    console.log("층 버튼 이벤트 등록 시작"); // 디버깅용
+    document.querySelectorAll(".floor-btn").forEach(btn => {
+        console.log("버튼 찾음:", btn.dataset.floor); // 디버깅용
+        btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            const floor = parseInt(btn.dataset.floor);
+            console.log("버튼 클릭됨:", floor); // 디버깅용
+            changeFloor(floor);
+        });
     });
 });
