@@ -259,13 +259,16 @@ function renderComments(comments) {
         
         const timeAgo = getTimeAgo(new Date(comment.createdAt));
         
+        // 작성자 본인이거나 관리자인 경우 삭제 버튼 표시
+        const canDelete = currentUser && (currentUser.uid === comment.authorId || currentUser.username === ADMIN_USERNAME);
+        
         commentEl.innerHTML = `
             <div class="comment-header">
                 <span class="comment-author">${comment.author}</span>
                 <span class="comment-time">${timeAgo}</span>
             </div>
             <div class="comment-text">${comment.text}</div>
-            ${currentUser && currentUser.uid === comment.authorId ? 
+            ${canDelete ? 
                 `<div class="comment-actions">
                     <button class="comment-delete-btn" data-comment-id="${comment.id}">삭제</button>
                 </div>` : ''
