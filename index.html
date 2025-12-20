@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="loading" class="loading">
+    <div id="loading" class="loading hidden">
         <p>로딩 중...</p>
     </div>
     <div class="instructions">
@@ -16,6 +16,16 @@
         🖱️ 휠/핀치: 확대/축소<br>
         🖱️ 더블클릭: 핀 생성</p>
     </div>
+    
+    <!-- 층 선택 버튼 -->
+    <div class="floor-selector">
+        <button class="floor-btn active" data-floor="1">1층</button>
+        <button class="floor-btn" data-floor="2">2층</button>
+        <button class="floor-btn" data-floor="3">3층</button>
+        <button class="floor-btn" data-floor="4">4층</button>
+        <button class="floor-btn" data-floor="5">5층</button>
+    </div>
+    
     <div id="auth-info" class="auth-info" style="display: none;">
         <span id="username-display"></span>
         <button class="btn btn-secondary btn-sm" id="logout-btn">로그아웃</button>
@@ -65,6 +75,12 @@
                     <img id="image-preview" alt="미리보기">
                 </div>
             </div>
+            <div class="form-group" id="notice-checkbox-container" style="display: none;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="is-notice">
+                    <span>🔔 공지 핀으로 생성 (관리자 전용)</span>
+                </label>
+            </div>
             <button class="btn btn-primary" id="save-pin" style="width: 100%;">저장</button>
         </div>
     </div>
@@ -105,4 +121,3 @@
     <script type="module" src="Map.js"></script>
 </body>
 </html>
-
