@@ -407,7 +407,8 @@ window.addEventListener("mousemove", (e) => {
 
 window.addEventListener("mouseup", () => {
     isDragging = false;
-    setTimeout(() => { dragMoved = false; }, 50);
+    // 짧은 지연 후 dragMoved 초기화
+    setTimeout(() => { dragMoved = false; }, 100);
 });
 
 // 터치 이벤트
@@ -456,7 +457,7 @@ container.addEventListener("touchmove", (e) => {
 
 container.addEventListener("touchend", () => {
     isTouching = false;
-    setTimeout(() => { dragMoved = false; }, 50);
+    setTimeout(() => { dragMoved = false; }, 100);
 });
 
 // 휠 줌
@@ -470,6 +471,13 @@ container.addEventListener("wheel", (e) => {
 // 더블클릭으로 핀 생성
 container.addEventListener("dblclick", (e) => {
     if (!currentUser || e.target.closest(".map-pin")) return;
+    
+    // 드래그 중이었으면 무시
+    if (dragMoved) {
+        dragMoved = false;
+        return;
+    }
+    
     const rect = container.getBoundingClientRect();
     pendingPinPosition = {
         x: (e.clientX - rect.left - rect.width / 2 - posX) / scale,
