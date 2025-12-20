@@ -30,7 +30,6 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-image: url('map_floor_1.png');
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
@@ -38,6 +37,7 @@ body {
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 20px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    transition: background-image 0.3s ease;
 }
 
 .map-pin {
@@ -48,13 +48,16 @@ body {
     border-radius: 50%;
     border: 3px solid white;
     cursor: pointer;
-    transition: all 0.2s;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 10;
+    pointer-events: auto;
+    left: 0;
+    top: 0;
+    will-change: transform;
 }
 
 .map-pin:hover {
-    transform: scale(1.2);
+    transform: scale(1.2) !important;
     box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
 }
 
@@ -70,6 +73,109 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+/* 공지 핀 스타일 */
+.map-pin.notice-pin {
+    width: 60px;
+    height: 60px;
+    background: #ffd700;
+    border: 4px solid #ff8c00;
+    animation: noticePulse 2s infinite;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+}
+
+.map-pin.notice-pin:hover {
+    transform: scale(1.2) !important;
+}
+
+.map-pin.notice-pin.has-image {
+    width: 70px;
+    height: 70px;
+    border: 4px solid #ff8c00;
+}
+
+@keyframes noticePulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.9);
+    }
+}
+
+/* 공지 모달 스타일 */
+.modal-content.notice-modal {
+    border: 4px solid #ffd700;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+}
+
+.modal-content.notice-modal .modal-header {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    margin: -30px -30px 20px -30px;
+    padding: 20px 30px;
+    border-radius: 11px 11px 0 0;
+}
+
+.modal-content.notice-modal .modal-header h2 {
+    color: #333;
+}
+
+/* 공지 이미지 크게 표시 */
+.view-image.notice-image {
+    max-height: 500px !important;
+    width: 100%;
+    object-fit: contain;
+}
+
+/* 층 선택 버튼 */
+.floor-selector {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+}
+
+.floor-btn {
+    padding: 12px 24px;
+    border: 2px solid #667eea;
+    background: white;
+    color: #667eea;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.2s;
+}
+
+.floor-btn:hover {
+    background: #f0f0ff;
+    transform: translateY(-2px);
+}
+
+.floor-btn.active {
+    background: #667eea;
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* 관리자 배지 */
+.admin-badge {
+    display: inline-block;
+    background: #ffd700;
+    color: #333;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 5px;
 }
 
 .modal {
@@ -275,7 +381,6 @@ body {
     line-height: 1.5;
 }
 
-/* 로딩 화면 - 전체 화면 덮기 */
 .loading {
     position: fixed;
     top: 0;
@@ -315,7 +420,6 @@ body {
     text-decoration: underline;
 }
 
-/* 좋아요 섹션 */
 .like-section {
     padding: 15px 0;
     border-top: 1px solid #eee;
@@ -365,7 +469,6 @@ body {
     50% { transform: scale(1.3); }
 }
 
-/* 댓글 섹션 */
 .comment-section {
     margin-top: 20px;
 }
