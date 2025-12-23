@@ -385,7 +385,10 @@ function openViewModal(pinData) {
     });
 }
 
-// 로그인 버튼 추가
+document.getElementById("show-login-btn").onclick = () => {
+    loginModal.classList.add("show");
+};
+
 function showLoginPrompt() {
     if (confirm("로그인이 필요한 기능입니다. 로그인하시겠습니까?")) {
         loginModal.classList.add("show");
@@ -693,3 +696,4 @@ document.querySelectorAll(".floor-btn").forEach(btn => {
         changeFloor(floor);
     });
 });
+
