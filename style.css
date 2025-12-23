@@ -42,20 +42,32 @@ body {
 
 .map-pin {
     position: absolute;
-    width: 30px;
-    height: 30px;
-    background: #ff6b6b;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 50%;
     border: 3px solid white;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
     z-index: 10;
+}
+
+.map-pin::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
 }
 
 .map-pin:hover {
     transform: scale(1.2);
-    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
 }
 
 .map-pin.has-image {
@@ -64,6 +76,10 @@ body {
     background: white;
     overflow: hidden;
     border: 3px solid #4ecdc4;
+}
+
+.map-pin.has-image::after {
+    display: none;
 }
 
 .map-pin.has-image img {
