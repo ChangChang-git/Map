@@ -31,7 +31,6 @@ let viewUnsubscribe = null;
 let currentFloor = 1;
 const ADMIN_USERNAME = "admin";
 
-
 let touchStartDist = 0;
 let touchStartScale = 1;
 let isTouching = false;
@@ -44,7 +43,6 @@ const createModal = document.getElementById("create-modal");
 const viewModal = document.getElementById("view-modal");
 const authInfo = document.getElementById("auth-info");
 const floorSelector = document.getElementById("floor-selector");
-
 
 function changeFloor(floor) {
     currentFloor = floor;
@@ -61,7 +59,6 @@ function changeFloor(floor) {
     updatePinsVisibility();
 }
 
-
 function updatePinsVisibility() {
     document.querySelectorAll(".map-pin").forEach(pin => {
         const pinFloor = parseInt(pin.dataset.floor);
@@ -72,7 +69,6 @@ function updatePinsVisibility() {
         }
     });
 }
-
 
 function updateTransform() {
     map.style.transform = `translate(calc(-50% + ${posX}px), calc(-50% + ${posY}px)) scale(${scale})`;
@@ -113,7 +109,6 @@ function createPinElement(pinData) {
     return pin;
 }
 
-
 function updatePinPosition(pin) {
     const x = Number(pin.dataset.x);
     const y = Number(pin.dataset.y);
@@ -139,7 +134,6 @@ function loadPins() {
     });
 }
 
-
 async function savePin(x, y, title, content, image) {
     try {
         const isNotice = document.getElementById("pin-is-notice")?.checked || false;
@@ -159,23 +153,24 @@ async function savePin(x, y, title, content, image) {
             isNotice: isNotice
         });
     } catch (error) {
-       
         alert("핀 저장에 실패했습니다.");
     }
 }
-
 
 async function deletePin(pinId) {
     try {
         await deleteDoc(doc(db, "pins", pinId));
     } catch (error) {
-       
         alert("핀 삭제에 실패했습니다.");
     }
 }
 
-
 async function toggleLike(pinId) {
+    if (!currentUser) {
+        alert("로그인이 필요합니다.");
+        return;
+    }
+    
     try {
         const pinRef = doc(db, "pins", pinId);
         const pinDoc = await getDoc(pinRef);
@@ -191,12 +186,16 @@ async function toggleLike(pinId) {
             });
         }
     } catch (error) {
-        
         alert("좋아요에 실패했습니다.");
     }
 }
 
 async function addComment(pinId, commentText) {
+    if (!currentUser) {
+        alert("로그인이 필요합니다.");
+        return;
+    }
+    
     try {
         const pinRef = doc(db, "pins", pinId);
         const comment = {
@@ -211,11 +210,9 @@ async function addComment(pinId, commentText) {
             comments: arrayUnion(comment)
         });
     } catch (error) {
-       
         alert("댓글 추가에 실패했습니다.");
     }
 }
-
 
 async function deleteComment(pinId, commentId) {
     try {
@@ -230,11 +227,9 @@ async function deleteComment(pinId, commentId) {
             });
         }
     } catch (error) {
-       
         alert("댓글 삭제에 실패했습니다.");
     }
 }
-
 
 function renderComments(comments) {
     const commentsList = document.getElementById("comments-list");
@@ -255,7 +250,6 @@ function renderComments(comments) {
         
         const timeAgo = getTimeAgo(new Date(comment.createdAt));
         
-      
         const canDelete = currentUser && (currentUser.uid === comment.authorId || currentUser.username === ADMIN_USERNAME);
         
         commentEl.innerHTML = `
@@ -283,7 +277,6 @@ function renderComments(comments) {
     });
 }
 
-
 function getTimeAgo(date) {
     const seconds = Math.floor((new Date() - date) / 1000);
     
@@ -293,7 +286,6 @@ function getTimeAgo(date) {
     if (seconds < 2592000) return `${Math.floor(seconds / 86400)}일 전`;
     return date.toLocaleDateString();
 }
-
 
 function getBase64(file) {
     return new Promise((resolve, reject) => {
@@ -307,7 +299,6 @@ function getBase64(file) {
         reader.onerror = error => reject(error);
     });
 }
-
 
 function openViewModal(pinData) {
     selectedPinId = pinData.id;
@@ -325,7 +316,6 @@ function openViewModal(pinData) {
         viewImage.classList.add("hidden");
     }
 
-   
     const modalContent = viewModal.querySelector(".modal-content");
     if (pinData.isNotice) {
         modalContent.classList.add("notice-modal");
@@ -333,7 +323,6 @@ function openViewModal(pinData) {
         modalContent.classList.remove("notice-modal");
     }
 
- 
     const likes = pinData.likes || [];
     const likeBtn = document.getElementById("like-btn");
     const likeCount = document.getElementById("like-count");
@@ -347,15 +336,13 @@ function openViewModal(pinData) {
         likeBtn.querySelector(".heart").textContent = "♡";
     }
 
-
     const comments = pinData.comments || [];
     document.getElementById("comment-count").textContent = comments.length;
     renderComments(comments);
     
-
     document.getElementById("comment-input").value = "";
 
-  
+    // 삭제 버튼 표시 여부
     const deleteBtn = document.getElementById("delete-pin");
     const adminDeleteBtn = document.getElementById("admin-delete-pin");
     
@@ -375,14 +362,12 @@ function openViewModal(pinData) {
         viewUnsubscribe = null;
     }
     
- 
     const pinRef = doc(db, "pins", pinData.id);
     viewUnsubscribe = onSnapshot(pinRef, (doc) => {
         if (doc.exists()) {
             const updatedData = doc.data();
             currentPinData = { id: doc.id, ...updatedData };
             
-        
             const updatedLikes = updatedData.likes || [];
             likeCount.textContent = updatedLikes.length;
             if (currentUser && updatedLikes.includes(currentUser.uid)) {
@@ -393,7 +378,6 @@ function openViewModal(pinData) {
                 likeBtn.querySelector(".heart").textContent = "♡";
             }
             
-          
             const updatedComments = updatedData.comments || [];
             document.getElementById("comment-count").textContent = updatedComments.length;
             renderComments(updatedData.comments || []);
@@ -401,6 +385,12 @@ function openViewModal(pinData) {
     });
 }
 
+// 로그인 버튼 추가
+function showLoginPrompt() {
+    if (confirm("로그인이 필요한 기능입니다. 로그인하시겠습니까?")) {
+        loginModal.classList.add("show");
+    }
+}
 
 document.getElementById("auth-submit").onclick = async () => {
     const username = document.getElementById("login-username").value.trim();
@@ -421,6 +411,7 @@ document.getElementById("auth-submit").onclick = async () => {
         } else {
             await signInWithEmailAndPassword(auth, email, password);
         }
+        loginModal.classList.remove("show");
     } catch (error) {
         console.error("인증 오류:", error);
         if (error.code === "auth/email-already-in-use") {
@@ -437,7 +428,6 @@ document.getElementById("auth-submit").onclick = async () => {
     }
 };
 
-
 document.getElementById("auth-toggle").onclick = () => {
     isRegistering = !isRegistering;
     document.getElementById("auth-title").textContent = isRegistering ? "회원가입" : "로그인";
@@ -445,13 +435,16 @@ document.getElementById("auth-toggle").onclick = () => {
     document.getElementById("auth-toggle").textContent = isRegistering ? "이미 계정이 있으신가요? 로그인" : "계정이 없으신가요? 회원가입";
 };
 
-
 document.getElementById("logout-btn").onclick = async () => {
     if (confirm("로그아웃 하시겠습니까?")) {
         await signOut(auth);
     }
 };
 
+// 로그인 모달 닫기 버튼 추가
+document.getElementById("close-login").onclick = () => {
+    loginModal.classList.remove("show");
+};
 
 onAuthStateChanged(auth, (user) => {
     loading.classList.add("hidden");
@@ -460,31 +453,26 @@ onAuthStateChanged(auth, (user) => {
             uid: user.uid,
             username: user.email.split("@")[0]
         };
-        loginModal.classList.remove("show");
         authInfo.style.display = "flex";
-        floorSelector.style.display = "flex";
         
         const usernameDisplay = document.getElementById("username-display");
         usernameDisplay.textContent = currentUser.username;
         
-     
         if (currentUser.username === ADMIN_USERNAME) {
             usernameDisplay.innerHTML = currentUser.username + '<span class="admin-badge">관리자</span>';
             document.getElementById("admin-notice-option").style.display = "block";
         } else {
             document.getElementById("admin-notice-option").style.display = "none";
         }
-        
-        loadPins();
     } else {
         currentUser = null;
-        loginModal.classList.add("show");
         authInfo.style.display = "none";
-        floorSelector.style.display = "none";
-        document.querySelectorAll(".map-pin").forEach(p => p.remove());
     }
+    
+    // 로그인 여부와 관계없이 핀 로드
+    floorSelector.style.display = "flex";
+    loadPins();
 });
-
 
 container.addEventListener("mousedown", (e) => {
     if (e.target.closest(".map-pin")) return;
@@ -537,7 +525,6 @@ container.addEventListener("touchmove", (e) => {
 
 container.addEventListener("touchend", () => isTouching = false);
 
-
 container.addEventListener("wheel", (e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
@@ -546,7 +533,14 @@ container.addEventListener("wheel", (e) => {
 }, { passive: false });
 
 container.addEventListener("dblclick", (e) => {
-    if (!currentUser || e.target.closest(".map-pin")) return;
+    if (e.target.closest(".map-pin")) return;
+    
+    // 로그인 체크
+    if (!currentUser) {
+        showLoginPrompt();
+        return;
+    }
+    
     const rect = container.getBoundingClientRect();
     pendingPinPosition = {
         x: (e.clientX - rect.left - rect.width / 2 - posX) / scale,
@@ -554,7 +548,6 @@ container.addEventListener("dblclick", (e) => {
     };
     createModal.classList.add("show");
 });
-
 
 document.getElementById("close-create").onclick = () => {
     createModal.classList.remove("show");
@@ -566,7 +559,6 @@ document.getElementById("close-create").onclick = () => {
         document.getElementById("pin-is-notice").checked = false;
     }
 };
-
 
 document.getElementById("save-pin").onclick = async () => {
     const title = document.getElementById("pin-title").value.trim();
@@ -600,7 +592,6 @@ document.getElementById("save-pin").onclick = async () => {
     }
 };
 
-
 document.getElementById("pin-image").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -618,15 +609,9 @@ document.getElementById("pin-image").addEventListener("change", async (e) => {
     }
 });
 
-
 document.getElementById("like-btn").onclick = async () => {
-    if (!currentUser) {
-        alert("로그인이 필요합니다.");
-        return;
-    }
     await toggleLike(selectedPinId);
 };
-
 
 document.getElementById("add-comment").onclick = async () => {
     const commentInput = document.getElementById("comment-input");
@@ -641,14 +626,12 @@ document.getElementById("add-comment").onclick = async () => {
     commentInput.value = "";
 };
 
-
 document.getElementById("comment-input").addEventListener("keypress", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         document.getElementById("add-comment").click();
     }
 });
-
 
 document.getElementById("close-view").onclick = () => {
     if (typeof viewUnsubscribe === "function") {
@@ -657,7 +640,6 @@ document.getElementById("close-view").onclick = () => {
     }
     viewModal.classList.remove("show");
 };
-
 
 document.getElementById("delete-pin").onclick = async () => {
     if (confirm("이 핀을 삭제하시겠습니까?")) {
@@ -674,7 +656,6 @@ document.getElementById("delete-pin").onclick = async () => {
     }
 };
 
-
 document.getElementById("admin-delete-pin").onclick = async () => {
     if (confirm("관리자 권한으로 이 핀을 삭제하시겠습니까?")) {
         loading.classList.remove("hidden");
@@ -689,7 +670,6 @@ document.getElementById("admin-delete-pin").onclick = async () => {
         loading.classList.add("hidden");
     }
 };
-
 
 createModal.addEventListener("click", (e) => {
     if (e.target === createModal) {
@@ -707,11 +687,9 @@ viewModal.addEventListener("click", (e) => {
     }
 });
 
-
 document.querySelectorAll(".floor-btn").forEach(btn => {
     btn.addEventListener("click", () => {
         const floor = parseInt(btn.dataset.floor);
         changeFloor(floor);
     });
 });
-
