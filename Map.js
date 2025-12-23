@@ -385,15 +385,16 @@ function openViewModal(pinData) {
     });
 }
 
-document.getElementById("show-login-btn").onclick = () => {
-    loginModal.classList.add("show");
-};
-
 function showLoginPrompt() {
     if (confirm("로그인이 필요한 기능입니다. 로그인하시겠습니까?")) {
         loginModal.classList.add("show");
     }
 }
+
+// 로그인 버튼 이벤트 리스너
+document.getElementById("show-login-btn").addEventListener("click", () => {
+    loginModal.classList.add("show");
+});
 
 document.getElementById("auth-submit").onclick = async () => {
     const username = document.getElementById("login-username").value.trim();
@@ -444,19 +445,22 @@ document.getElementById("logout-btn").onclick = async () => {
     }
 };
 
-// 로그인 모달 닫기 버튼 추가
+// 로그인 모달 닫기 버튼
 document.getElementById("close-login").onclick = () => {
     loginModal.classList.remove("show");
 };
 
 onAuthStateChanged(auth, (user) => {
     loading.classList.add("hidden");
+    const showLoginBtn = document.getElementById("show-login-btn");
+    
     if (user) {
         currentUser = {
             uid: user.uid,
             username: user.email.split("@")[0]
         };
         authInfo.style.display = "flex";
+        if (showLoginBtn) showLoginBtn.style.display = "none";
         
         const usernameDisplay = document.getElementById("username-display");
         usernameDisplay.textContent = currentUser.username;
@@ -470,6 +474,7 @@ onAuthStateChanged(auth, (user) => {
     } else {
         currentUser = null;
         authInfo.style.display = "none";
+        if (showLoginBtn) showLoginBtn.style.display = "block";
     }
     
     // 로그인 여부와 관계없이 핀 로드
@@ -696,4 +701,3 @@ document.querySelectorAll(".floor-btn").forEach(btn => {
         changeFloor(floor);
     });
 });
-
